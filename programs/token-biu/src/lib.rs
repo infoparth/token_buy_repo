@@ -13,7 +13,7 @@ use crate::constants::{
       MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY
 };
 
-declare_id!("AFqeVXgZX3KWf2c2eUJM2YVEKFH2nR7PCLiCSAqsSrPp");
+declare_id!("BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK");
 
 #[program]
 pub mod token_biu {
@@ -33,14 +33,17 @@ pub mod token_biu {
         sale_config.mint_decimals = mint_decimals;
         sale_config.sale_authority = sale_authority;
         sale_config.recipient = ctx.accounts.recipient.key();
+        sale_config.token_mint = ctx.accounts.token_mint.key();
+        sale_config.bump = _bump;
 
         Ok(())
     }
 
     pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
         let sale_config = &ctx.accounts.sale_config;
-
+        
         require!(!sale_config.paused, ErrorCode::SalePaused);
+
         // Fetch SOL/USD price from Pyth
         let feed_id: [u8; 32] =
             get_feed_id_from_hex(SOL_USD_FEED_ID)?;
@@ -62,8 +65,8 @@ pub mod token_biu {
          msg!("Attempting to transfer {} tokens", token_amount);
 
           let program_token_balance = ctx.accounts.program_token_account.amount;
-    msg!("Program token balance: {}", program_token_balance);
-    require!(program_token_balance >= token_amount, ErrorCode::InsufficientTokens);
+            msg!("Program token balance: {}", program_token_balance);
+            require!(program_token_balance >= token_amount, ErrorCode::InsufficientTokens);
 
         // Transfer SOL to sale authority
         let cpi_context = CpiContext::new(
@@ -79,7 +82,7 @@ pub mod token_biu {
   // Create static seeds and bump array
     let authority_seeds: &[&[u8]] = &[
         SALE_AUTHORITY,
-        &[ctx.bumps.program_sale_authority],
+        &[sale_config.bump],
     ];
 
     // Transfer tokens from program account to buyer with PDA signer
@@ -100,28 +103,21 @@ pub mod token_biu {
     Ok(())
     }
 
-    pub fn withdraw_sol(ctx: Context<WithdrawSol>, amount: u64) -> Result<()> {
-        let sale_config = &ctx.accounts.sale_config;
-        require!(
-            sale_config.authority == ctx.accounts.authority.key(),
-            ErrorCode::Unauthorized
-        );
-
-        let current_balance = ctx.accounts.sale_authority.lamports();
-        require!(current_balance >= amount, ErrorCode::InsufficientFunds);
-
-        let cpi_context = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            anchor_lang::system_program::Transfer {
-                from: ctx.accounts.sale_authority.to_account_info(),
-                to: ctx.accounts.recipient.to_account_info(),
-            },
-        );
-
-        anchor_lang::system_program::transfer(cpi_context, amount)?;
-
+    pub fn change_reciepent_account(ctx: Context<AdminControl>, new_receipent: Pubkey) -> Result<()>{
+        
+        let sale_config = &mut ctx.accounts.sale_config;
+        sale_config.recipient = new_receipent;
         Ok(())
     }
+
+
+     pub fn change_config_authority(ctx: Context<AdminControl>, new_authority: Pubkey) -> Result<()>{
+        
+        let sale_config = &mut ctx.accounts.sale_config;
+        sale_config.authority = new_authority;
+        Ok(())
+    }
+   
 
     pub fn pause_sale(ctx: Context<AdminControl>) -> Result<()> {
         let sale_config = &mut ctx.accounts.sale_config;
@@ -137,6 +133,26 @@ pub mod token_biu {
 }
 
 #[derive(Accounts)]
+pub struct InitializeSale<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,   
+
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + 32 + 8 + 1 + 8 + 32 + 32 + 32 + 8,
+    )]
+    pub sale_config: Account<'info, SaleConfig>,
+
+    #[account(mut)]
+    pub recipient: SystemAccount<'info>, // This is the the sale authority, to whom, the SOL will be transferred
+
+    pub token_mint: Account<'info, Mint>, // This is the address of the token_mint that is being initialized
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 #[instruction(sol_amount: u64)]
 pub struct BuyTokens<'info> {
     #[account(mut)]
@@ -148,14 +164,16 @@ pub struct BuyTokens<'info> {
     #[account(
         mut,
         seeds = [SALE_AUTHORITY],
-        bump
+        bump = sale_config.bump,
+        
     )]
-    pub program_sale_authority: SystemAccount<'info>, // This is the PDA, which will be used for transfering the tokens, to the buyers account
+    pub program_sale_authority: SystemAccount<'info>, // This is the associated token account of the program 
 
     #[account(
         constraint = sale_config.authority == authority.key() @ ErrorCode::Unauthorized,
         constraint = sale_config.sale_authority == program_sale_authority.key() @ ErrorCode::WrongProgramAuthority,
-        constraint = sale_config.recipient == sale_authority.key() @ ErrorCode::WrongRecipientAddress
+        constraint = sale_config.recipient == sale_authority.key() @ ErrorCode::WrongRecipientAddress,
+        constraint = sale_config.token_mint == mint.key() @ ErrorCode::InvalidTokenMint
     )]  
     pub sale_config: Account<'info, SaleConfig>,
 
@@ -186,44 +204,7 @@ pub struct BuyTokens<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
-#[derive(Accounts)]
-pub struct WithdrawSol<'info> {
-    #[account(
-        mut,
-        constraint = sale_config.authority == authority.key() @ ErrorCode::Unauthorized
-    )]
-    pub sale_config: Account<'info, SaleConfig>,
 
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(mut)]
-    pub sale_authority: SystemAccount<'info>,
-
-    /// CHECK: Recipient account where SOL will be withdrawn
-    #[account(mut)]
-    pub recipient: SystemAccount<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct InitializeSale<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,   
-
-    #[account(
-        init,
-        payer = authority,
-        space = 8 + 32 + 8 + 1 + 8 + 32 +32,
-    )]
-    pub sale_config: Account<'info, SaleConfig>,
-
-    #[account(mut)]
-    pub recipient: SystemAccount<'info>, // This is the the sale authority, to whom, the SOL will be transferred
-
-    pub system_program: Program<'info, System>,
-}
 
 #[derive(Accounts)]
 pub struct AdminControl<'info> {
@@ -232,12 +213,17 @@ pub struct AdminControl<'info> {
     pub authority: Signer<'info>,
 }
 
+
+
+
 #[account]
 pub struct SaleConfig {
     pub authority: Pubkey, // This is the authority that controls the pause and resume of the sale
-    pub token_price_usd: f64,
-    pub paused: bool,
-    pub mint_decimals: u64,
     pub sale_authority: Pubkey, // This is the PDA which will be used to transfer tokens to 
     pub recipient: Pubkey,  // This is the account that will receive the SOL
+    pub token_mint: Pubkey, // This is the address of the token mint, that will be used
+    pub token_price_usd: f64,
+    pub mint_decimals: u64,
+    pub bump: u8,
+    pub paused: bool,
 }

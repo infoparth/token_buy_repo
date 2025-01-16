@@ -22,5 +22,8 @@ pub enum ErrorCode {
 
     #[msg("Wrong Recipient Address for SOL Transfer")]
     WrongRecipientAddress,
+
+    #[msg("Wrong Token Mint Address")]
+    InvalidTokenMint
 }
 

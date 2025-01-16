@@ -4,14 +4,14 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-token_biu = "AFqeVXgZX3KWf2c2eUJM2YVEKFH2nR7PCLiCSAqsSrPp"
+[programs.devnet]
+token_biu = "BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

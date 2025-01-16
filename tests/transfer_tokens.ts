@@ -17,7 +17,7 @@ import {
   PublicKey,
   SystemProgram,
 } from "@solana/web3.js";
-import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
+// import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 
 describe("token_biu", () => {
@@ -29,6 +29,8 @@ describe("token_biu", () => {
   const wallet: Keypair = Keypair.generate();
   const buyer: Keypair = Keypair.generate();
   const recipient: Keypair = Keypair.generate();
+  const newAuthority: Keypair = Keypair.generate();
+  const newRecipient: Keypair = Keypair.generate();
 
   let saleConfig: Keypair;
   let mint: anchor.web3.PublicKey;
@@ -39,25 +41,13 @@ describe("token_biu", () => {
   const connection = provider.connection;
   const _provider_wallet = provider.wallet as anchor.Wallet;
 
-  const pythSolanaReceiver = new PythSolanaReceiver({
-    connection,
-    wallet: _provider_wallet,
-  });
-  const SOL_USD_FEED_ID =
-    "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
-
-  const solUsdPriceFeedAccount = pythSolanaReceiver.getPriceFeedAccountAddress(
-    0,
-    SOL_USD_FEED_ID
-  );
-
-  console.log(solUsdPriceFeedAccount);
-
   before(async () => {
+    console.log("\n=======================================");
     console.log("Starting setup in `before` hook...");
+    console.log("=======================================");
 
     try {
-      console.log("Requesting SOL airdrop for wallet and buyer...");
+      console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
       await Promise.all([
         provider.connection.requestAirdrop(
           wallet.publicKey,
@@ -72,25 +62,13 @@ describe("token_biu", () => {
           signatures.map((sig) => provider.connection.confirmTransaction(sig))
         )
       );
-      console.log("Airdrop completed.");
-      console.log(
-        "The balance of wallet is: ",
-        await provider.connection.getBalance(wallet.publicKey)
-      );
-      console.log(
-        "The balance of buyer is: ",
-        await provider.connection.getBalance(buyer.publicKey)
-      );
-      console.log(
-        "The balance of reciepent is: ",
-        await provider.connection.getBalance(recipient.publicKey)
-      );
+      console.log("Airdrop completed.\n");
     } catch (error) {
       console.error("Error during SOL airdrop:", error);
     }
 
     try {
-      console.log("Creating token mint...");
+      console.log("\n--- Creating token mint ---");
       mint = await createMint(
         provider.connection,
         wallet,
@@ -98,23 +76,23 @@ describe("token_biu", () => {
         null,
         6
       );
-
-      console.log("Token mint created successfully:", mint.toBase58());
+      console.log("Token mint created successfully:", mint.toBase58(), "\n");
     } catch (error) {
       console.error("Error during token mint creation:", error);
       throw error;
     }
 
     try {
-      console.log("Finding program sale authority PDA...");
+      console.log("\n--- Finding program sale authority PDA ---");
       const [authority, bump] = anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("sale_authority")],
+        [Buffer.from("SALE_AUTHORITY")],
         program.programId
       );
       programSaleAuthority = authority;
       console.log(
         "Program sale authority PDA:",
-        programSaleAuthority.toBase58()
+        programSaleAuthority.toBase58(),
+        "\n"
       );
     } catch (error) {
       console.error("Error finding PDA for sale authority:", error);
@@ -123,17 +101,21 @@ describe("token_biu", () => {
 
     try {
       console.log(
-        "Getting associated token account for program sale authority..."
+        "\n--- Getting associated token account for program sale authority ---"
       );
       programTokenAccount = getAssociatedTokenAddressSync(
         mint,
         programSaleAuthority,
         true // allowOwnerOffCurve
       );
-      console.log("Program token account:", programTokenAccount.toBase58());
+      console.log(
+        "Program token account:",
+        programTokenAccount.toBase58(),
+        "\n"
+      );
 
       console.log(
-        "Creating associated token account for program sale authority..."
+        "\n--- Creating associated token account for program sale authority ---"
       );
       const ataInstruction = createAssociatedTokenAccountInstruction(
         wallet.publicKey, // Payer
@@ -147,17 +129,16 @@ describe("token_biu", () => {
       await provider.sendAndConfirm(transaction, [wallet]);
       console.log(
         "ATA created for programSaleAuthority (off-curve):",
-        programTokenAccount.toBase58()
+        programTokenAccount.toBase58(),
+        "\n"
       );
-
-      console.log("Associated token account:", programTokenAccount.toBase58());
     } catch (error) {
       console.error("Error getting associated token account:", error);
       throw error;
     }
 
     try {
-      console.log("Initializing sale configuration...");
+      console.log("\n--- Initializing sale configuration ---");
       saleConfig = anchor.web3.Keypair.generate();
       const tokenPriceUsd = 0.005;
       const mintDecimals = new anchor.BN(6);
@@ -169,27 +150,27 @@ describe("token_biu", () => {
           saleConfig: saleConfig.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
           recipient: recipient.publicKey,
+          tokenMint: mint,
         })
         .signers([wallet, saleConfig])
         .rpc();
-      console.log("Sale configuration initialized successfully.");
+      console.log("Sale configuration initialized successfully.\n");
     } catch (error) {
       console.error("Error during sale initialization:", error);
       throw error;
     }
 
     try {
-      console.log("Minting tokens to program token account...");
+      console.log("\n--- Minting tokens to program token account ---");
       const DECIMALS = 6;
       const TOKEN_PRICE_USD = 0.005;
       const SOL_PRICE_USD = 190.0;
 
-      // Calculate how many tokens we need
       const solAmount = LAMPORTS_PER_SOL; // 1 SOL
       const solAmountUsd = (solAmount * SOL_PRICE_USD) / 1e9;
       const expectedTokenAmount =
         (solAmountUsd / TOKEN_PRICE_USD) * Math.pow(10, DECIMALS);
-      const MINT_AMOUNT = expectedTokenAmount * 2; // Mint double what we need
+      const MINT_AMOUNT = expectedTokenAmount * 5; // Mint double what we need
 
       console.log(`Minting ${MINT_AMOUNT} tokens to program account...`);
       await mintTo(
@@ -201,13 +182,11 @@ describe("token_biu", () => {
         MINT_AMOUNT
       );
 
-      // Verify the balance
       const tokenAccount = await getAccount(
         provider.connection,
         programTokenAccount
       );
-      console.log(`Program token account balance: ${tokenAccount.amount}`);
-      console.log("Tokens Minted Successfully");
+      console.log(`Program token account balance: ${tokenAccount.amount}\n`);
     } catch (error) {
       console.error("Error during token minting:", error);
       throw error;
@@ -215,14 +194,16 @@ describe("token_biu", () => {
   });
 
   it("Buys tokens", async () => {
+    console.log("\n=======================================");
     console.log("Starting token purchase test...");
+    console.log("=======================================");
 
     try {
-      console.log("Getting associated token account for buyer...");
+      console.log("\n--- Getting associated token account for buyer ---");
       buyerTokenAccount = getAssociatedTokenAddressSync(mint, buyer.publicKey);
-      console.log("Buyer token account:", buyerTokenAccount.toBase58());
+      console.log("Buyer token account:", buyerTokenAccount.toBase58(), "\n");
 
-      console.log("Creating associated token account for Buyer...");
+      console.log("\n--- Creating associated token account for Buyer ---");
       const ataInstruction = createAssociatedTokenAccountInstruction(
         buyer.publicKey, // Payer
         buyerTokenAccount, // Associated Token Account
@@ -233,14 +214,14 @@ describe("token_biu", () => {
       const transaction = new anchor.web3.Transaction().add(ataInstruction);
 
       await provider.sendAndConfirm(transaction, [buyer]);
-      console.log("ATA created for Buyer :", buyerTokenAccount.toBase58());
+      console.log("ATA created for Buyer:", buyerTokenAccount.toBase58(), "\n");
     } catch (error) {
       console.error("Error creating buyer's token account:", error);
       throw error;
     }
 
     try {
-      console.log("Simulating token purchase...");
+      console.log("\n--- Simulating token purchase ---");
 
       // Log pre-transaction balances
       const preBuyerBalance = await getAccount(
@@ -252,7 +233,7 @@ describe("token_biu", () => {
         programTokenAccount
       );
       console.log(
-        `Pre-Transaction Balances:\nBuyer: ${preBuyerBalance.amount}\nProgram: ${preProgramBalance.amount}`
+        `Pre-Transaction Balances:\nBuyer: ${preBuyerBalance.amount}\nProgram: ${preProgramBalance.amount}\n`
       );
 
       const tx = await program.methods
@@ -266,7 +247,7 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-          priceUpdate: solUsdPriceFeedAccount,
+          priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -274,7 +255,7 @@ describe("token_biu", () => {
         })
         .signers([buyer])
         .rpc();
-      console.log("Token purchase transaction signature:", tx);
+      console.log("Token purchase transaction signature:", tx, "\n");
 
       // Log post-transaction balances
       const postBuyerBalance = await getAccount(
@@ -286,25 +267,210 @@ describe("token_biu", () => {
         programTokenAccount
       );
       console.log(
-        `Post-Transaction Balances:\nBuyer: ${postBuyerBalance.amount}\nProgram: ${postProgramBalance.amount}`
+        `Post-Transaction Balances:\nBuyer: ${postBuyerBalance.amount}\nProgram: ${postProgramBalance.amount}\n`
       );
 
-      // Log token transfer amount
       const tokensTransferred =
         BigInt(postBuyerBalance.amount) - BigInt(preBuyerBalance.amount);
       console.log(`Tokens Transferred: ${tokensTransferred}`);
-      console.log(
-        "The Post balance of wallet is: ",
-        await provider.connection.getBalance(wallet.publicKey)
+    } catch (error) {
+      console.error("Error during token purchase:", error);
+      throw error;
+    }
+  });
+
+  it("Changes the recipient account", async () => {
+    console.log("\n=======================================");
+    console.log("Changing recipient account...");
+    console.log("=======================================");
+
+    const tx = await program.methods
+      .changeReciepentAccount(newRecipient.publicKey)
+      .accounts({
+        authority: wallet.publicKey,
+        saleConfig: saleConfig.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+    console.log("Recipient account changed successfully:", tx, "\n");
+  });
+
+  it("Buys tokens", async () => {
+    console.log("\n=======================================");
+    console.log("Starting token purchase test after reciepent change...");
+    console.log("=======================================");
+
+    try {
+      console.log("\n--- Getting associated token account for buyer ---");
+      buyerTokenAccount = getAssociatedTokenAddressSync(mint, buyer.publicKey);
+      console.log("Buyer token account:", buyerTokenAccount.toBase58(), "\n");
+    } catch (error) {
+      console.error("Error creating buyer's token account:", error);
+      throw error;
+    }
+
+    try {
+      console.log("\n--- Simulating token purchase ---");
+
+      // Log pre-transaction balances
+      const preBuyerBalance = await getAccount(
+        provider.connection,
+        buyerTokenAccount
+      );
+      const preProgramBalance = await getAccount(
+        provider.connection,
+        programTokenAccount
       );
       console.log(
-        "The post balance of buyer is: ",
-        await provider.connection.getBalance(buyer.publicKey)
+        `Pre-Transaction Balances:\nBuyer: ${preBuyerBalance.amount}\nProgram: ${preProgramBalance.amount}\n`
       );
+
+      console.log(
+        "The pre balance of reciepent is: ",
+        await provider.connection.getBalance(newRecipient.publicKey)
+      );
+
+      const tx = await program.methods
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .accounts({
+          buyer: buyer.publicKey,
+          saleAuthority: newRecipient.publicKey,
+          programSaleAuthority: programSaleAuthority,
+          saleConfig: saleConfig.publicKey,
+          authority: wallet.publicKey,
+          mint: mint,
+          programTokenAccount: programTokenAccount,
+          buyerTokenAccount: buyerTokenAccount,
+          priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+          associatedTokenProgram:
+            anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
+        })
+        .signers([buyer])
+        .rpc();
+      console.log("Token purchase transaction signature:", tx, "\n");
+
+      // Log post-transaction balances
+      const postBuyerBalance = await getAccount(
+        provider.connection,
+        buyerTokenAccount
+      );
+      const postProgramBalance = await getAccount(
+        provider.connection,
+        programTokenAccount
+      );
+      console.log(
+        `Post-Transaction Balances:\nBuyer: ${postBuyerBalance.amount}\nProgram: ${postProgramBalance.amount}\n`
+      );
+
       console.log(
         "The post balance of reciepent is: ",
-        await provider.connection.getBalance(recipient.publicKey)
+        await provider.connection.getBalance(newRecipient.publicKey)
       );
+
+      const tokensTransferred =
+        BigInt(postBuyerBalance.amount) - BigInt(preBuyerBalance.amount);
+      console.log(`Tokens Transferred: ${tokensTransferred}`);
+    } catch (error) {
+      console.error("Error during token purchase:", error);
+      throw error;
+    }
+  });
+
+  it("Changes the token authority", async () => {
+    console.log("\n=======================================");
+    console.log("Changing token authority...");
+    console.log("=======================================");
+
+    const tx = await program.methods
+      .changeConfigAuthority(newAuthority.publicKey)
+      .accounts({
+        authority: wallet.publicKey,
+        saleConfig: saleConfig.publicKey,
+      })
+      .signers([wallet])
+      .rpc();
+    console.log("Token authority changed successfully:", tx, "\n");
+  });
+
+  it("Buys tokens", async () => {
+    console.log("\n=======================================");
+    console.log("Starting token purchase test after authority change...");
+    console.log("=======================================");
+
+    try {
+      console.log("\n--- Getting associated token account for buyer ---");
+      buyerTokenAccount = getAssociatedTokenAddressSync(mint, buyer.publicKey);
+      console.log("Buyer token account:", buyerTokenAccount.toBase58(), "\n");
+    } catch (error) {
+      console.error("Error creating buyer's token account:", error);
+      throw error;
+    }
+
+    try {
+      console.log("\n--- Simulating token purchase ---");
+
+      // Log pre-transaction balances
+      const preBuyerBalance = await getAccount(
+        provider.connection,
+        buyerTokenAccount
+      );
+      const preProgramBalance = await getAccount(
+        provider.connection,
+        programTokenAccount
+      );
+      console.log(
+        `Pre-Transaction Balances:\nBuyer: ${preBuyerBalance.amount}\nProgram: ${preProgramBalance.amount}\n`
+      );
+
+      console.log(
+        "The pre balance of reciepent is: ",
+        await provider.connection.getBalance(newRecipient.publicKey)
+      );
+
+      const tx = await program.methods
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .accounts({
+          buyer: buyer.publicKey,
+          saleAuthority: newRecipient.publicKey,
+          programSaleAuthority: programSaleAuthority,
+          saleConfig: saleConfig.publicKey,
+          authority: newAuthority.publicKey,
+          mint: mint,
+          programTokenAccount: programTokenAccount,
+          buyerTokenAccount: buyerTokenAccount,
+          priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+          associatedTokenProgram:
+            anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
+        })
+        .signers([buyer])
+        .rpc();
+      console.log("Token purchase transaction signature:", tx, "\n");
+
+      // Log post-transaction balances
+      const postBuyerBalance = await getAccount(
+        provider.connection,
+        buyerTokenAccount
+      );
+      const postProgramBalance = await getAccount(
+        provider.connection,
+        programTokenAccount
+      );
+      console.log(
+        `Post-Transaction Balances:\nBuyer: ${postBuyerBalance.amount}\nProgram: ${postProgramBalance.amount}\n`
+      );
+
+      console.log(
+        "The post balance of reciepent is: ",
+        await provider.connection.getBalance(newRecipient.publicKey)
+      );
+
+      const tokensTransferred =
+        BigInt(postBuyerBalance.amount) - BigInt(preBuyerBalance.amount);
+      console.log(`Tokens Transferred: ${tokensTransferred}`);
     } catch (error) {
       console.error("Error during token purchase:", error);
       throw error;

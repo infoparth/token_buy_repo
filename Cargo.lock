@@ -2447,6 +2447,7 @@ name = "token_biu"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "anchor-lang-idl",
  "anchor-spl",
  "bs58 0.5.1",
  "pyth-solana-receiver-sdk",
