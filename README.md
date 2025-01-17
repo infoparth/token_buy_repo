@@ -1,4 +1,4 @@
-tokenAddress = AFqeVXgZX3KWf2c2eUJM2YVEKFH2nR7PCLiCSAqsSrPp
+
 
 # Anchor Program Deployment Guide
 
@@ -107,3 +107,7 @@ Ensure you have the following installed and configured on your system:
 
 2. **Update the IDL**:
    Anchor generates an IDL (Interface Definition Language) file automatically. The file is located in the `target/idl/` directory. Ensure you load the correct IDL in your frontend client.
+
+## Current Token Address
+
+Token Address: AFqeVXgZX3KWf2c2eUJM2YVEKFH2nR7PCLiCSAqsSrPp
