@@ -24,6 +24,15 @@ pub enum ErrorCode {
     WrongRecipientAddress,
 
     #[msg("Wrong Token Mint Address")]
-    InvalidTokenMint
+    InvalidTokenMint,
+
+    #[msg("Slippage Exceeds the desired amount")]
+    SlippageExceeded, 
+
+    #[msg("Math-Overflow error")]
+    MathOverflow, 
+
+
+
 }
 

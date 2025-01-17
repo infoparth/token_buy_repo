@@ -247,7 +247,7 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-          priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+          // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -341,7 +341,7 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-          priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+          // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -440,7 +440,7 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-          priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+          // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:

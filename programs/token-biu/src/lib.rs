@@ -36,6 +36,13 @@ pub mod token_biu {
         sale_config.token_mint = ctx.accounts.token_mint.key();
         sale_config.bump = _bump;
 
+        // Emit initialization event
+        emit!(SaleInitialized {
+            authority: sale_config.authority,
+            token_price: token_price_usd,
+            recipient: sale_config.recipient,
+        });
+
         Ok(())
     }
 
@@ -53,14 +60,18 @@ pub mod token_biu {
             &feed_id,
         )?;
         let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
+        
         // let sol_price_usd: f64 = 190.0;
 
         // // Calculate token amount
         let token_price_usd = sale_config.token_price_usd;
         let sol_amount_usd = sol_amount as f64 / 10_f64.powf(9.0) * sol_price_usd;
+        
         let decimals = sale_config.mint_decimals;
         // // let mint: spl_token::state::Mint = spl_token::state::Mint::unpack(&ctx.accounts.mint.data.borrow())?;
         let token_amount = (sol_amount_usd / token_price_usd * 10_f64.powf(decimals as f64)) as u64;
+        
+
 
          msg!("Attempting to transfer {} tokens", token_amount);
 
@@ -100,6 +111,15 @@ pub mod token_biu {
     )?;
           let program_token_post_balance = ctx.accounts.program_token_account.amount;
     msg!("Program token post balance: {}", program_token_post_balance);
+
+     // Emit purchase event
+        emit!(TokensPurchased {
+            buyer: ctx.accounts.buyer.key(),
+            sol_amount,
+            token_amount,
+            sol_price: sol_price_usd,
+        });
+    
     Ok(())
     }
 
@@ -107,6 +127,12 @@ pub mod token_biu {
         
         let sale_config = &mut ctx.accounts.sale_config;
         sale_config.recipient = new_receipent;
+
+        emit!(RecipientChanged {
+            old_recipient: ctx.accounts.sale_config.recipient,
+            new_recipient: new_receipent,
+        });
+
         Ok(())
     }
 
@@ -115,6 +141,12 @@ pub mod token_biu {
         
         let sale_config = &mut ctx.accounts.sale_config;
         sale_config.authority = new_authority;
+
+        emit!(TokenAuthorityChanged {
+            old_authority: ctx.accounts.sale_config.authority,
+            new_authority,
+        });
+
         Ok(())
     }
    
@@ -130,7 +162,6 @@ pub mod token_biu {
         sale_config.paused = false;
         Ok(())
     }
-}
 
 #[derive(Accounts)]
 pub struct InitializeSale<'info> {
@@ -226,4 +257,34 @@ pub struct SaleConfig {
     pub mint_decimals: u64,
     pub bump: u8,
     pub paused: bool,
+    
+}
+
+// Event definitions
+#[event]
+pub struct SaleInitialized {
+    pub authority: Pubkey,
+    pub token_price: f64,
+    pub recipient: Pubkey,
+}
+
+#[event]
+pub struct TokensPurchased {
+    pub buyer: Pubkey,
+    pub sol_amount: u64,
+    pub token_amount: u64,
+    pub sol_price: f64,
+}
+
+#[event]
+pub struct RecipientChanged {
+    pub old_recipient: Pubkey,
+    pub new_recipient: Pubkey,
+}
+
+#[event]
+pub struct TokenAuthorityChanged {
+    pub old_authority: Pubkey,
+    pub new_authority: Pubkey,
+}
 }
