@@ -66,6 +66,12 @@ Ensure you have the following installed and configured on your system:
    declare_id!("YourProgramAddressHere");
    ```
 
+   * Replace or add the program ID in the `token_biu` field in Anchor.toml
+
+   ```toml
+   token_biu = <YourProgramAddressHere>
+   ```
+
 4. **Build the Program Again**:
    Rebuild the program with the updated program ID:
 
