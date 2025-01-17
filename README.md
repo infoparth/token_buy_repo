@@ -97,16 +97,19 @@ Ensure you have the following installed and configured on your system:
 
 ### 3. Configure the Client
 
-1. **Update Program ID**:
-   Open `Anchor.toml` and update the `[programs.localnet.<program-name>]` entry with your program ID:
-
-   ```toml
-   [programs.localnet]
-   <program-name> = "<your-program-id>"
-   ```
-
-2. **Update the IDL**:
+1. **Update the IDL**:
    Anchor generates an IDL (Interface Definition Language) file automatically. The file is located in the `target/idl/` directory. Ensure you load the correct IDL in your frontend client.
+
+2. **Copy the IDL**:
+   Copy and paste the IDL in your frontend code in the `constants/token_idl.json` file, replace the previous IDL with the new IDL.json file.
+
+3. **Replace the Token Address:**:
+   In the `constants/constants.js` file, replace the new token_buy address with the previous one.
+
+4. **Initialize the Token Sale**:
+   Run the Initialize component to Initialize the token sale, give the recipient address, to which the SOL will be transfered to, and the mint address of the 
+   token the wallet signing the tx, will be the authority to pause/resume sale and to change the recipient/authority in future.
+
 
 ## Current Token Address
 
