@@ -32,6 +32,9 @@ pub enum ErrorCode {
     #[msg("Math-Overflow error")]
     MathOverflow, 
 
+	#[msg("Purchase Limit Exceeded")]
+	PurchaseLimitExceeded
+
 
 
 }

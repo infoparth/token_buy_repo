@@ -24,6 +24,8 @@ describe("token_biu", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.TokenBiu as Program<TokenBiu>;
+  const initialTokenLimit = 100000 * 1000000 ;
+  let variableTokenLimit = 5000 * 1000000;
 
   // Dynamically create wallet 1 and wallet 2
   const wallet: Keypair = Keypair.generate();
@@ -142,9 +144,10 @@ describe("token_biu", () => {
       saleConfig = anchor.web3.Keypair.generate();
       const tokenPriceUsd = 0.005;
       const mintDecimals = new anchor.BN(6);
+      const tokenLimit = new anchor.BN(initialTokenLimit);
 
       await program.methods
-        .initializeSale(tokenPriceUsd, mintDecimals)
+        .initializeSale(tokenPriceUsd, mintDecimals, tokenLimit )
         .accounts({
           authority: wallet.publicKey,
           saleConfig: saleConfig.publicKey,
@@ -476,4 +479,108 @@ describe("token_biu", () => {
       throw error;
     }
   });
+
+  it("Changes the Per Day Limit ", async () => {
+    console.log("\n=======================================");
+    console.log("Changing Per Day Limit to ...", variableTokenLimit);
+    console.log("=======================================");
+
+	let newTokenLimit = new anchor.BN(variableTokenLimit)
+
+    const tx = await program.methods
+      .setPurchaseLimit(newTokenLimit)
+      .accounts({
+        authority: newAuthority.publicKey,
+        saleConfig: saleConfig.publicKey,
+      })
+      .signers([newAuthority])
+      .rpc();
+    console.log("Token Limit changed successfully:", tx, "\n");
+  });
+
+  it("Buys tokens", async () => {
+    console.log("\n=======================================");
+    console.log("Starting token purchase test after authority change...");
+    console.log("=======================================");
+
+    try {
+      console.log("\n--- Getting associated token account for buyer ---");
+      buyerTokenAccount = getAssociatedTokenAddressSync(mint, buyer.publicKey);
+      console.log("Buyer token account:", buyerTokenAccount.toBase58(), "\n");
+    } catch (error) {
+      console.error("Error creating buyer's token account:", error);
+      throw error;
+    }
+
+    try {
+      console.log("\n--- Simulating token purchase ---");
+
+      // Log pre-transaction balances
+      const preBuyerBalance = await getAccount(
+        provider.connection,
+        buyerTokenAccount
+      );
+      const preProgramBalance = await getAccount(
+        provider.connection,
+        programTokenAccount
+      );
+      console.log(
+        `Pre-Transaction Balances:\nBuyer: ${preBuyerBalance.amount}\nProgram: ${preProgramBalance.amount}\n`
+      );
+
+      console.log(
+        "The pre balance of reciepent is: ",
+        await provider.connection.getBalance(newRecipient.publicKey)
+      );
+
+      const tx = await program.methods
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .accounts({
+          buyer: buyer.publicKey,
+          saleAuthority: newRecipient.publicKey,
+          programSaleAuthority: programSaleAuthority,
+          saleConfig: saleConfig.publicKey,
+          authority: newAuthority.publicKey,
+          mint: mint,
+          programTokenAccount: programTokenAccount,
+          buyerTokenAccount: buyerTokenAccount,
+          // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+          systemProgram: anchor.web3.SystemProgram.programId,
+          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+          associatedTokenProgram:
+            anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
+        })
+        .signers([buyer])
+        .rpc();
+      console.log("Token purchase transaction signature:", tx, "\n");
+
+      // Log post-transaction balances
+      const postBuyerBalance = await getAccount(
+        provider.connection,
+        buyerTokenAccount
+      );
+      const postProgramBalance = await getAccount(
+        provider.connection,
+        programTokenAccount
+      );
+      console.log(
+        `Post-Transaction Balances:\nBuyer: ${postBuyerBalance.amount}\nProgram: ${postProgramBalance.amount}\n`
+      );
+
+      console.log(
+        "The post balance of reciepent is: ",
+        await provider.connection.getBalance(newRecipient.publicKey)
+      );
+
+      const tokensTransferred =
+        BigInt(postBuyerBalance.amount) - BigInt(preBuyerBalance.amount);
+      console.log(`Tokens Transferred: ${tokensTransferred}`);
+    } catch (error) {
+      console.error("Error during token purchase:", error);
+      throw error;
+    }
+  });
+
+
+
 });
