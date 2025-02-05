@@ -1,8 +1,6 @@
-
-
 # Anchor Program Deployment Guide
 
-This document provides step-by-step instructions to deploy your Anchor program on the Solana blockchain.
+This README provides step-by-step instructions to deploy your Anchor program on the Solana blockchain.
 
 ## Prerequisites
 

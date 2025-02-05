@@ -8,6 +8,12 @@ edition = "2021"
 crate-type = ["cdylib", "lib"]
 name = "token_biu"
 
+[profile.release]
+opt-level = "z"
+codegen-units = 1
+lto = true
+
+
 [features]
 default = []
 cpi = ["no-entrypoint"]

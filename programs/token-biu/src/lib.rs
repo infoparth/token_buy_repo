@@ -10,10 +10,10 @@ use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2
 
 use crate::error::ErrorCode;
 use crate::constants::{
-      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY
+      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY
 };
 
-declare_id!("BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK");
+declare_id!("7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t");
 
 #[program]
 pub mod token_biu {
@@ -23,6 +23,7 @@ pub mod token_biu {
         ctx: Context<InitializeSale>,
         token_price_usd: f64,
         mint_decimals: u64,
+		purchase_limit: u64,
     ) -> Result<()> {
         let (sale_authority, _bump) =
             Pubkey::find_program_address(&[SALE_AUTHORITY], ctx.program_id);
@@ -35,6 +36,7 @@ pub mod token_biu {
         sale_config.recipient = ctx.accounts.recipient.key();
         sale_config.token_mint = ctx.accounts.token_mint.key();
         sale_config.bump = _bump;
+		sale_config.wallet_purchase_limit = purchase_limit;
 
         // Emit initialization event
         emit!(SaleInitialized {
@@ -61,14 +63,14 @@ pub mod token_biu {
         )?;
         let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
         
-        // let sol_price_usd: f64 = 190.0;
+ //        let sol_price_usd: f64 = 190.0;
 
-        // // Calculate token amount
+        // Calculate token amount
         let token_price_usd = sale_config.token_price_usd;
         let sol_amount_usd = sol_amount as f64 / 10_f64.powf(9.0) * sol_price_usd;
         
         let decimals = sale_config.mint_decimals;
-        // // let mint: spl_token::state::Mint = spl_token::state::Mint::unpack(&ctx.accounts.mint.data.borrow())?;
+         // let mint: spl_token::state::Mint = spl_token::state::Mint::unpack(&ctx.accounts.mint.data.borrow())?;
         let token_amount = (sol_amount_usd / token_price_usd * 10_f64.powf(decimals as f64)) as u64;
         
 
@@ -78,6 +80,19 @@ pub mod token_biu {
           let program_token_balance = ctx.accounts.program_token_account.amount;
             msg!("Program token balance: {}", program_token_balance);
             require!(program_token_balance >= token_amount, ErrorCode::InsufficientTokens);
+
+			let wallet_purchase = &mut ctx.accounts.wallet_purchase;
+			let current_timestamp = Clock::get()?.unix_timestamp;
+			let wallet_daily_limit = sale_config.wallet_purchase_limit;
+
+			if current_timestamp - wallet_purchase.last_purchased_timestamp > SECONDS_IN_A_DAY  {
+			wallet_purchase.total_purchased = 0;
+			}
+
+			require!(wallet_purchase.total_purchased + token_amount <= wallet_daily_limit, 
+			ErrorCode::PurchaseLimitExceeded
+
+			);
 
         // Transfer SOL to sale authority
         let cpi_context = CpiContext::new(
@@ -111,6 +126,10 @@ pub mod token_biu {
     )?;
           let program_token_post_balance = ctx.accounts.program_token_account.amount;
     msg!("Program token post balance: {}", program_token_post_balance);
+
+	wallet_purchase.total_purchased += token_amount;
+	wallet_purchase.last_purchased_timestamp = current_timestamp;
+
 
      // Emit purchase event
         emit!(TokensPurchased {
@@ -149,6 +168,20 @@ pub mod token_biu {
 
         Ok(())
     }
+
+	pub fn  set_purchase_limit(ctx: Context<AdminControl>,new_limit: u64 ) -> Result<()>{
+	let sale_config = &mut ctx.accounts.sale_config;
+	sale_config.wallet_purchase_limit = new_limit;
+
+
+	emit!(WalletLimitSet{
+	new_limit,});
+
+	
+	Ok(())
+	}
+
+
    
 
     pub fn pause_sale(ctx: Context<AdminControl>) -> Result<()> {
@@ -171,7 +204,7 @@ pub struct InitializeSale<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + 8 + 1 + 8 + 32 + 32 + 32 + 8,
+        space = 8 + 32 + 8 + 1 + 8 + 32 + 32 + 32 + 32 + 8,
     )]
     pub sale_config: Account<'info, SaleConfig>,
 
@@ -186,6 +219,7 @@ pub struct InitializeSale<'info> {
 #[derive(Accounts)]
 #[instruction(sol_amount: u64)]
 pub struct BuyTokens<'info> {
+
     #[account(mut)]
     pub buyer: Signer<'info>,
 
@@ -228,6 +262,15 @@ pub struct BuyTokens<'info> {
     )]
     pub buyer_token_account: Account<'info, TokenAccount>,
 
+	#[account(
+        init_if_needed,
+        payer = buyer,
+        space = 8 + 32 + 8 + 8 +  1,
+        seeds = [b"wallet_purchase", buyer.key().as_ref()],
+        bump,
+    )]
+    pub wallet_purchase: Account<'info, WalletPurchase>,
+
     pub price_update: Account<'info, PriceUpdateV2>,
 
     pub system_program: Program<'info, System>,
@@ -255,9 +298,18 @@ pub struct SaleConfig {
     pub token_mint: Pubkey, // This is the address of the token mint, that will be used
     pub token_price_usd: f64,
     pub mint_decimals: u64,
+	pub wallet_purchase_limit: u64,
     pub bump: u8,
-    pub paused: bool,
+	pub paused: bool,
     
+}
+
+#[account]
+pub struct WalletPurchase {
+    pub wallet: Pubkey,       // The wallet address
+    pub total_purchased: u64, // Total tokens purchased by this wallet
+	pub last_purchased_timestamp: i64, // The Timestamp of the last purchase	
+    pub bump: u8,             // Bump seed for PDA
 }
 
 // Event definitions
@@ -287,4 +339,9 @@ pub struct TokenAuthorityChanged {
     pub old_authority: Pubkey,
     pub new_authority: Pubkey,
 }
+
+#[event]
+pub struct WalletLimitSet {
+	pub new_limit: u64,
+	}
 }

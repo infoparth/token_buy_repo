@@ -8,14 +8,17 @@ skip-lint = false
 token_biu = "BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK"
 
 [programs.devnet]
-token_biu = "BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK"
+token_biu = "Fbj2RSrRm7bPL1YaWMdzuaYaqxHZG2cMGTa1fMsr7LJ8"
+
+[programs.mainnet]
+token_biu = "7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t"
 
 [registry]
-url = "https://api.apr.dev"
+url = "https://api.mainnet-beta.solana.com"
 
 [provider]
-cluster = "Devnet"
-wallet = "~/.config/solana/id.json"
+cluster = "Mainnet"
+wallet = "new-keypair.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
