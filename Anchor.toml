@@ -5,10 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-token_biu = "BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK"
+token_biu = "6ef87KrppTTz4ee3udHiPNNucdJ8iJ8W4otxEFp6UUrU"
 
 [programs.devnet]
-token_biu = "Fbj2RSrRm7bPL1YaWMdzuaYaqxHZG2cMGTa1fMsr7LJ8"
+token_biu = "HkfLotTYqtbBR3wjyMZcojaiQuSpFGaWFYCnXQQeaT9Y"
 
 [programs.mainnet]
 token_biu = "7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t"
@@ -17,7 +17,7 @@ token_biu = "7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t"
 url = "https://api.mainnet-beta.solana.com"
 
 [provider]
-cluster = "Localnet"
+cluster = "Devnet"
 wallet = "new-keypair.json"
 
 [scripts]

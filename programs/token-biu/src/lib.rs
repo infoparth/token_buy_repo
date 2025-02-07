@@ -10,10 +10,10 @@ use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2
 
 use crate::error::ErrorCode;
 use crate::constants::{
-      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, WALLET_PURCHASE_ACCOUNT, ANCHOR_DISCRIMINATOR
+      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR
 };
 
-declare_id!("BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK");
+declare_id!("HkfLotTYqtbBR3wjyMZcojaiQuSpFGaWFYCnXQQeaT9Y");
 
 #[program]
 pub mod token_biu {
@@ -53,6 +53,19 @@ pub mod token_biu {
         
         require!(!sale_config.paused, ErrorCode::SalePaused);
 
+
+		let wallet_purchase = &mut ctx.accounts.wallet_purchase;
+		let current_timestamp = Clock::get()?.unix_timestamp;
+
+		// Check if account needs initialization (wallet will be default/zero if new)
+    	if wallet_purchase.wallet == Pubkey::default() {
+        	msg!("Initializing new wallet purchase account");
+        	wallet_purchase.wallet = ctx.accounts.buyer.key();
+        	wallet_purchase.total_purchased = 0;
+        	wallet_purchase.last_purchased_timestamp = 0; // Start with 0 timestamp
+    	}
+
+
         // Fetch SOL/USD price from Pyth
         let feed_id: [u8; 32] =
            get_feed_id_from_hex(SOL_USD_FEED_ID)?;
@@ -70,7 +83,6 @@ pub mod token_biu {
         let sol_amount_usd = sol_amount as f64 / 10_f64.powf(9.0) * sol_price_usd;
         
         let decimals = sale_config.mint_decimals;
-         // let mint: spl_token::state::Mint = spl_token::state::Mint::unpack(&ctx.accounts.mint.data.borrow())?;
         let token_amount = (sol_amount_usd / token_price_usd * 10_f64.powf(decimals as f64)) as u64;
         
 
@@ -81,8 +93,6 @@ pub mod token_biu {
             msg!("Program token balance: {}", program_token_balance);
             require!(program_token_balance >= token_amount, ErrorCode::InsufficientTokens);
 
-			let wallet_purchase = &mut ctx.accounts.wallet_purchase;
-			let current_timestamp = Clock::get()?.unix_timestamp;
 			let wallet_daily_limit = sale_config.wallet_purchase_limit;
 
 			if current_timestamp - wallet_purchase.last_purchased_timestamp > SECONDS_IN_A_DAY  {
@@ -170,15 +180,15 @@ pub mod token_biu {
     }
 
 	pub fn  set_purchase_limit(ctx: Context<AdminControl>,new_limit: u64 ) -> Result<()>{
-	let sale_config = &mut ctx.accounts.sale_config;
-	sale_config.wallet_purchase_limit = new_limit;
+		let sale_config = &mut ctx.accounts.sale_config;
+		sale_config.wallet_purchase_limit = new_limit;
 
 
-	emit!(WalletLimitSet{
-	new_limit,});
+		emit!(WalletLimitSet{
+		new_limit});
 
 	
-	Ok(())
+		Ok(())
 	}
 
 
@@ -240,7 +250,7 @@ pub struct BuyTokens<'info> {
         constraint = sale_config.recipient == sale_authority.key() @ ErrorCode::WrongRecipientAddress,
         constraint = sale_config.token_mint == mint.key() @ ErrorCode::InvalidTokenMint
     )]  
-    pub sale_config: Account<'info, SaleConfig>,
+    pub sale_config: Box<Account<'info, SaleConfig>>,
 
     /// CHECK: We only need the public key for verification
     pub authority: UncheckedAccount<'info>,  // This is the owner account, i.e the pause/resume authority
@@ -269,9 +279,9 @@ pub struct BuyTokens<'info> {
         seeds = [b"wallet_purchase", buyer.key().as_ref()],
         bump,
     )]
-    pub wallet_purchase: Account<'info, WalletPurchase>,
+    pub wallet_purchase: Box<Account<'info, WalletPurchase>>,
 
-    pub price_update: Account<'info, PriceUpdateV2>,
+    pub price_update: Box<Account<'info, PriceUpdateV2>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
