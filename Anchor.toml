@@ -4,6 +4,9 @@
 resolution = true
 skip-lint = false
 
+[programs.localnet]
+token_biu = "BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK"
+
 [programs.devnet]
 token_biu = "Fbj2RSrRm7bPL1YaWMdzuaYaqxHZG2cMGTa1fMsr7LJ8"
 

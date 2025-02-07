@@ -52,7 +52,7 @@ Ensure you have the following installed and configured on your system:
    Retrieve the program's address from the generated keypair:
 
    ```bash
-   solana address -k target/deploy/basic_1-keypair.json
+   solana address -k target/deploy/token_biu-keypair.json
    ```
    * The output of this command is the **program ID**. Note it down.
 
@@ -62,6 +62,12 @@ Ensure you have the following installed and configured on your system:
 
    ```rust
    declare_id!("YourProgramAddressHere");
+   ```
+
+   * Replace or add the program ID in the `token_biu` field in Anchor.toml
+
+   ```toml
+   token_biu = <YourProgramAddressHere>
    ```
 
 4. **Build the Program Again**:
@@ -78,6 +84,8 @@ Ensure you have the following installed and configured on your system:
    anchor deploy
    ```
 
+   If the deployment gives an insufficient funds error, please make sure to copy the wallet address, and get some devnet SOL, before deploying on devnet.
+
 6. **Verify Deployment**:
    Run the following command to confirm your program is on-chain:
 
@@ -87,13 +95,20 @@ Ensure you have the following installed and configured on your system:
 
 ### 3. Configure the Client
 
-1. **Update Program ID**:
-   Open `Anchor.toml` and update the `[programs.localnet.<program-name>]` entry with your program ID:
-
-   ```toml
-   [programs.localnet]
-   <program-name> = "<your-program-id>"
-   ```
-
-2. **Update the IDL**:
+1. **Update the IDL**:
    Anchor generates an IDL (Interface Definition Language) file automatically. The file is located in the `target/idl/` directory. Ensure you load the correct IDL in your frontend client.
+
+2. **Copy the IDL**:
+   Copy and paste the IDL in your frontend code in the `constants/token_idl.json` file, replace the previous IDL with the new IDL.json file.
+
+3. **Replace the Token Address:**:
+   In the `constants/constants.js` file, replace the new token_buy address with the previous one.
+
+4. **Initialize the Token Sale**:
+   Run the Initialize component to Initialize the token sale, give the recipient address, to which the SOL will be transfered to, and the mint address of the 
+   token the wallet signing the tx, will be the authority to pause/resume sale and to change the recipient/authority in future.
+
+
+## Current Token Address
+
+Token Address: AFqeVXgZX3KWf2c2eUJM2YVEKFH2nR7PCLiCSAqsSrPp
