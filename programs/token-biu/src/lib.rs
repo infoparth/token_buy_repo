@@ -10,7 +10,7 @@ use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2
 
 use crate::error::ErrorCode;
 use crate::constants::{
-      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY
+      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, WALLET_PURCHASE_ACCOUNT, ANCHOR_DISCRIMINATOR
 };
 
 declare_id!("7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t");
@@ -204,7 +204,7 @@ pub struct InitializeSale<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + 8 + 1 + 8 + 32 + 32 + 32 + 32 + 8,
+        space = ANCHOR_DISCRIMINATOR + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 1,
     )]
     pub sale_config: Account<'info, SaleConfig>,
 
@@ -265,8 +265,8 @@ pub struct BuyTokens<'info> {
 	#[account(
         init_if_needed,
         payer = buyer,
-        space = 8 + 32 + 8 + 8 +  1,
-        seeds = [b"wallet_purchase", buyer.key().as_ref()],
+        space = ANCHOR_DISCRIMINATOR + 32 + 8 + 8 +  1,
+        seeds = [WALLET_PURCHASE_ACCOUNT, buyer.key().as_ref()],
         bump,
     )]
     pub wallet_purchase: Account<'info, WalletPurchase>,

@@ -4,6 +4,7 @@ use anchor_lang::prelude::*;
 pub const SOL_USD_FEED_ID: &str =
     "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 pub const SALE_AUTHORITY: &[u8] = b"SALE_AUTHORITY";
+pub const WALLET_PURCHASE_ACCOUNT: &[u8] = b"wallet_purchase";
 
 
 pub const ANCHOR_DISCRIMINATOR: usize = 8;
