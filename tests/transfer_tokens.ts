@@ -33,6 +33,7 @@ describe("token_biu", () => {
   const recipient: Keypair = Keypair.generate();
   const newAuthority: Keypair = Keypair.generate();
   const newRecipient: Keypair = Keypair.generate();
+  const pubKey = buyer.publicKey;
 
   let saleConfig: Keypair;
   let mint: anchor.web3.PublicKey;
@@ -239,6 +240,11 @@ describe("token_biu", () => {
         `Pre-Transaction Balances:\nBuyer: ${preBuyerBalance.amount}\nProgram: ${preProgramBalance.amount}\n`
       );
 
+      const [walletPurchaseAccount, bump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("wallet_purchase"), pubKey.toBuffer()],
+        program.programId
+      );
+
       const tx = await program.methods
         .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
         .accounts({
@@ -250,6 +256,7 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
+		  walletPurchase: walletPurchaseAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
@@ -333,6 +340,11 @@ describe("token_biu", () => {
         await provider.connection.getBalance(newRecipient.publicKey)
       );
 
+      const [walletPurchaseAccount, bump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("wallet_purchase"), pubKey.toBuffer()],
+        program.programId
+      );
+
       const tx = await program.methods
         .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
         .accounts({
@@ -344,6 +356,7 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
+		  walletPurchase: walletPurchaseAccount, 
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
@@ -432,6 +445,11 @@ describe("token_biu", () => {
         await provider.connection.getBalance(newRecipient.publicKey)
       );
 
+      const [walletPurchaseAccount, bump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("wallet_purchase"), pubKey.toBuffer()],
+        program.programId
+      );
+
       const tx = await program.methods
         .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
         .accounts({
@@ -444,6 +462,7 @@ describe("token_biu", () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+		  walletPurhcase: walletPurchaseAccount, 
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -533,6 +552,11 @@ describe("token_biu", () => {
         await provider.connection.getBalance(newRecipient.publicKey)
       );
 
+      const [walletPurchaseAccount, bump] = anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("wallet_purchase"), pubKey.toBuffer()],
+        program.programId
+      );
+
       const tx = await program.methods
         .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
         .accounts({
@@ -545,6 +569,7 @@ describe("token_biu", () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+		  walletPurchase: walletPurchaseAccount, 
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:

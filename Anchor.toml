@@ -17,7 +17,7 @@ token_biu = "7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t"
 url = "https://api.mainnet-beta.solana.com"
 
 [provider]
-cluster = "Mainnet"
+cluster = "Localnet"
 wallet = "new-keypair.json"
 
 [scripts]

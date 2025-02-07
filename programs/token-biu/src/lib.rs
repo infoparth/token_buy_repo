@@ -13,7 +13,7 @@ use crate::constants::{
       MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, WALLET_PURCHASE_ACCOUNT, ANCHOR_DISCRIMINATOR
 };
 
-declare_id!("7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t");
+declare_id!("BYL3gQZVzkY7yedggsNHSBc4LcdHF2B465ueMcodATcK");
 
 #[program]
 pub mod token_biu {
@@ -55,15 +55,15 @@ pub mod token_biu {
 
         // Fetch SOL/USD price from Pyth
         let feed_id: [u8; 32] =
-            get_feed_id_from_hex(SOL_USD_FEED_ID)?;
+           get_feed_id_from_hex(SOL_USD_FEED_ID)?;
         let price_data = ctx.accounts.price_update.get_price_no_older_than(
             &Clock::get()?,
             MAX_AGE,
             &feed_id,
         )?;
-        let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
+       let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
         
- //        let sol_price_usd: f64 = 190.0;
+   //     let sol_price_usd: f64 = 190.0;
 
         // Calculate token amount
         let token_price_usd = sale_config.token_price_usd;
@@ -266,7 +266,7 @@ pub struct BuyTokens<'info> {
         init_if_needed,
         payer = buyer,
         space = ANCHOR_DISCRIMINATOR + 32 + 8 + 8 +  1,
-        seeds = [WALLET_PURCHASE_ACCOUNT, buyer.key().as_ref()],
+        seeds = [b"wallet_purchase", buyer.key().as_ref()],
         bump,
     )]
     pub wallet_purchase: Account<'info, WalletPurchase>,
