@@ -109,6 +109,6 @@ Ensure you have the following installed and configured on your system:
    token the wallet signing the tx, will be the authority to pause/resume sale and to change the recipient/authority in future.
 
 
-## Current Token Address
 
-Token Address: AFqeVXgZX3KWf2c2eUJM2YVEKFH2nR7PCLiCSAqsSrPp
+
+
