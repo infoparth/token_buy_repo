@@ -19,13 +19,15 @@ import {
 } from "@solana/web3.js";
 // import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
+import { assert } from "chai";
 
 describe("token_biu", () => {
+console.log("---------------------------------------Transfer Tests-------------------------------------")
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.TokenBiu as Program<TokenBiu>;
-  const initialTokenLimit = 100000 * 1000000 ;
-  let variableTokenLimit = 5000 * 1000000;
+  const initialTokenLimit = 10000000 * 1000000 ;
+  let variableTokenLimit = 10000000 * 1000000;
 
   // Dynamically create wallet 1 and wallet 2
   const wallet: Keypair = Keypair.generate();
@@ -43,6 +45,7 @@ describe("token_biu", () => {
 
   const connection = provider.connection;
   const _provider_wallet = provider.wallet as anchor.Wallet;
+  const currentTimestamp = new anchor.BN(Math.floor(Date.now() / 1000));
 
   before(async () => {
     console.log("\n=======================================");
@@ -197,6 +200,64 @@ describe("token_biu", () => {
     }
   });
 
+  const [monthlyLimitsAccount, monthlyLimitsBump] = anchor.web3.PublicKey.findProgramAddressSync(
+  [Buffer.from("monthly_limits")],
+  program.programId
+);
+
+it("Sets monthly limits", async () => {
+  console.log("\n=======================================");
+  console.log("Setting monthly limits...");
+  console.log("=======================================");
+
+  const monthlyLimits = Array(12).fill(1000000 * 1000000).map(limit => new anchor.BN(limit));
+
+  // Add event listener for MonthlyLimitsSet
+  const listener = program.addEventListener(
+    "MonthlyLimitsSet",
+    (event, _slot) => {
+      console.log("MonthlyLimitsSet event emitted:", event);
+      assert.deepEqual(event.limits, monthlyLimits);
+    }
+  );
+
+  try {
+    const tx = await program.methods
+      .setMonthlyLimits(monthlyLimits)
+      .accounts({
+        authority: wallet.publicKey,
+        saleConfig: saleConfig.publicKey,
+        monthlyLimits: monthlyLimitsAccount,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([wallet])
+      .rpc();
+
+    console.log("Monthly limits set successfully:", tx);
+
+    // Verify the monthly limits were set correctly
+    const monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+    monthlyLimitsState.limits.forEach((limit, index) => {
+      assert.equal(
+        limit.toString(),
+        monthlyLimits[index].toString(),
+        `Account limit at index ${index} doesn't match expected value`
+      );
+    });
+
+    assert.equal(
+      monthlyLimitsState.tokensBoughtThisMonth.toString(),
+      "0",
+      "Initial tokens bought should be 0"
+    );
+  } catch (error) {
+    console.error("Error setting monthly limits:", error);
+    throw error;
+  } finally {
+    program.removeEventListener(listener);
+  }
+});
+
   it("Buys tokens", async () => {
     console.log("\n=======================================");
     console.log("Starting token purchase test...");
@@ -257,6 +318,7 @@ describe("token_biu", () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
 		  walletPurchase: walletPurchaseAccount,
+		  monthlyLimits: monthlyLimitsAccount, 
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
@@ -356,8 +418,9 @@ describe("token_biu", () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-		  walletPurchase: walletPurchaseAccount, 
+		  walletPurchase: walletPurchaseAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+		  monthlyLimits: monthlyLimitsAccount, 
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -462,7 +525,8 @@ describe("token_biu", () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-		  walletPurhcase: walletPurchaseAccount, 
+		  monthlyLimits: monthlyLimitsAccount, 
+		  walletPurhcase: walletPurchaseAccount,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -569,7 +633,8 @@ describe("token_biu", () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-		  walletPurchase: walletPurchaseAccount, 
+		  walletPurchase: walletPurchaseAccount,
+		  monthlyLimits: monthlyLimitsAccount, 
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:

@@ -1,5 +1,6 @@
 pub mod error;
 pub mod constants;
+pub mod events;
 
 use anchor_lang::prelude::*;
 use anchor_spl::{
@@ -12,8 +13,9 @@ use crate::error::ErrorCode;
 use crate::constants::{
       MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR
 };
+use events::*;
 
-declare_id!("HkfLotTYqtbBR3wjyMZcojaiQuSpFGaWFYCnXQQeaT9Y");
+declare_id!("AuDZCMRLBovvSc3214tq4tPAnn16TtgMXE1dFSMkvRoe");
 
 #[program]
 pub mod token_biu {
@@ -59,7 +61,7 @@ pub mod token_biu {
 
 		// Check if account needs initialization (wallet will be default/zero if new)
     	if wallet_purchase.wallet == Pubkey::default() {
-        	msg!("Initializing new wallet purchase account");
+
         	wallet_purchase.wallet = ctx.accounts.buyer.key();
         	wallet_purchase.total_purchased = 0;
         	wallet_purchase.last_purchased_timestamp = 0; // Start with 0 timestamp
@@ -73,10 +75,10 @@ pub mod token_biu {
             &Clock::get()?,
             MAX_AGE,
             &feed_id,
-        )?;
-       let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
+       )?;
+      let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
         
-   //     let sol_price_usd: f64 = 190.0;
+   //    let sol_price_usd: f64 = 190.0;
 
         // Calculate token amount
         let token_price_usd = sale_config.token_price_usd;
@@ -84,13 +86,9 @@ pub mod token_biu {
         
         let decimals = sale_config.mint_decimals;
         let token_amount = (sol_amount_usd / token_price_usd * 10_f64.powf(decimals as f64)) as u64;
-        
-
-
-         msg!("Attempting to transfer {} tokens", token_amount);
 
           let program_token_balance = ctx.accounts.program_token_account.amount;
-            msg!("Program token balance: {}", program_token_balance);
+
             require!(program_token_balance >= token_amount, ErrorCode::InsufficientTokens);
 
 			let wallet_daily_limit = sale_config.wallet_purchase_limit;
@@ -103,6 +101,23 @@ pub mod token_biu {
 			ErrorCode::PurchaseLimitExceeded
 
 			);
+
+
+		// Check monthly limits
+    	let monthly_limits = &mut ctx.accounts.monthly_limits;
+    	let new_month = ((current_timestamp / 2629743) % 12) as u8; // Approximate month calculation
+
+		  // Check if we've moved to a new month
+		if new_month != monthly_limits.current_month {
+        	monthly_limits.tokens_bought_this_month = 0;
+        	monthly_limits.current_month = new_month;
+    	}
+
+
+    	let monthly_limit = monthly_limits.limits[new_month as usize];
+		let tokens_bought_this_month = monthly_limits.tokens_bought_this_month;
+
+    	require!(token_amount + tokens_bought_this_month <= monthly_limit, ErrorCode::MonthlyLimitExceeded);
 
         // Transfer SOL to sale authority
         let cpi_context = CpiContext::new(
@@ -134,11 +149,12 @@ pub mod token_biu {
         ),
         token_amount
     )?;
-          let program_token_post_balance = ctx.accounts.program_token_account.amount;
-    msg!("Program token post balance: {}", program_token_post_balance);
 
 	wallet_purchase.total_purchased += token_amount;
 	wallet_purchase.last_purchased_timestamp = current_timestamp;
+
+	monthly_limits.tokens_bought_this_month  += token_amount;
+
 
 
      // Emit purchase event
@@ -191,9 +207,6 @@ pub mod token_biu {
 		Ok(())
 	}
 
-
-   
-
     pub fn pause_sale(ctx: Context<AdminControl>) -> Result<()> {
         let sale_config = &mut ctx.accounts.sale_config;
         sale_config.paused = true;
@@ -205,6 +218,26 @@ pub mod token_biu {
         sale_config.paused = false;
         Ok(())
     }
+
+
+	pub fn set_monthly_limits(ctx: Context<SetMonthlyLimits>, limits: [u64; 12]) -> Result<()> {
+    	let monthly_limits = &mut ctx.accounts.monthly_limits;
+    	monthly_limits.limits = limits;
+	
+
+		let current_timestamp = Clock::get()?.unix_timestamp;
+
+    	let this_month = ((current_timestamp / 2629743) % 12) as u8; // Approximate month calculation
+        monthly_limits.tokens_bought_this_month = 0;
+        monthly_limits.current_month = this_month;
+
+    	emit!(MonthlyLimitsSet {
+        	limits: monthly_limits.limits,
+    	});
+
+    	Ok(())
+	}
+
 
 #[derive(Accounts)]
 pub struct InitializeSale<'info> {
@@ -281,6 +314,11 @@ pub struct BuyTokens<'info> {
     )]
     pub wallet_purchase: Box<Account<'info, WalletPurchase>>,
 
+
+	#[account(mut)]
+    pub monthly_limits: Box<Account<'info, MonthlyLimits>>,
+
+
     pub price_update: Box<Account<'info, PriceUpdateV2>>,
 
     pub system_program: Program<'info, System>,
@@ -297,8 +335,23 @@ pub struct AdminControl<'info> {
     pub authority: Signer<'info>,
 }
 
+#[derive(Accounts)]
+pub struct SetMonthlyLimits<'info> {
+    #[account(mut, has_one = authority)]
+    pub sale_config: Box<Account<'info, SaleConfig>>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = ANCHOR_DISCRIMINATOR + (8 * 12) + 8 + 1,
+        seeds = [b"monthly_limits"],
+        bump,
+    )]
+    pub monthly_limits: Box<Account<'info, MonthlyLimits>>,
 
-
+	#[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
 
 #[account]
 pub struct SaleConfig {
@@ -322,36 +375,11 @@ pub struct WalletPurchase {
     pub bump: u8,             // Bump seed for PDA
 }
 
-// Event definitions
-#[event]
-pub struct SaleInitialized {
-    pub authority: Pubkey,
-    pub token_price: f64,
-    pub recipient: Pubkey,
+#[account]
+pub struct MonthlyLimits {
+    pub limits: [u64; 12], // Array to store the monthly limits for 12 months
+	pub tokens_bought_this_month: u64,
+	pub current_month: u8,
 }
 
-#[event]
-pub struct TokensPurchased {
-    pub buyer: Pubkey,
-    pub sol_amount: u64,
-    pub token_amount: u64,
-    pub sol_price: f64,
-}
-
-#[event]
-pub struct RecipientChanged {
-    pub old_recipient: Pubkey,
-    pub new_recipient: Pubkey,
-}
-
-#[event]
-pub struct TokenAuthorityChanged {
-    pub old_authority: Pubkey,
-    pub new_authority: Pubkey,
-}
-
-#[event]
-pub struct WalletLimitSet {
-	pub new_limit: u64,
-	}
 }

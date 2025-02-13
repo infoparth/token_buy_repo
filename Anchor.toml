@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-token_biu = "6ef87KrppTTz4ee3udHiPNNucdJ8iJ8W4otxEFp6UUrU"
+token_biu = "AuDZCMRLBovvSc3214tq4tPAnn16TtgMXE1dFSMkvRoe"
 
 [programs.devnet]
 token_biu = "HkfLotTYqtbBR3wjyMZcojaiQuSpFGaWFYCnXQQeaT9Y"
@@ -17,8 +17,14 @@ token_biu = "7PASEEKtEGDeEpQg3CVCb37eKBSWAZeXh7jsXxkvaA8t"
 url = "https://api.mainnet-beta.solana.com"
 
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "new-keypair.json"
+
+[test]
+startup_wait = 10000
+
+[test.validator]
+args = ["--enable-cpi-and-pda-with-clock-sysvar-write", "--bpf-program", "WaRpT1mMYNtGMhMGpcXUYVauQDFNRJrbPbbELGcapsw=clocksetter.so", "--warp-slot", "1000"]
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
