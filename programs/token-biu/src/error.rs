@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum ErrorCode {
+
     #[msg("Token sale is currently paused")]
     SalePaused,
 
@@ -33,7 +34,10 @@ pub enum ErrorCode {
     MathOverflow, 
 
 	#[msg("Purchase Limit Exceeded")]
-	PurchaseLimitExceeded
+	PurchaseLimitExceeded, 
+
+	#[msg("Monthly Limit Exceeded")]
+	MonthlyLimitExceeded
 
 
 
