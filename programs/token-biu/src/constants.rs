@@ -21,7 +21,7 @@ pub enum Period {
 
 impl Period {
     // Method to get the length of the period in seconds
-    pub fn length(&self) -> i64 {
+    pub const  fn length(&self) -> i64 {
         match self {
             Period::Hourly => 3600,
             Period::Daily => 86400,
@@ -30,7 +30,7 @@ impl Period {
     }
 
     // Method to get the count of periods in a year
-    pub fn count(&self) -> i64 {
+    pub const fn count(&self) -> i64 {
         match self {
             Period::Hourly => 8760,
             Period::Daily => 365,

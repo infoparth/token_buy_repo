@@ -11,7 +11,7 @@ use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2
 
 use crate::error::ErrorCode;
 use crate::constants::{
-      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR, PERIOD_LENGHT, PERIOD_COUNT, DEFAULT, SOL_DECIMALS, 
+      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR, PERIOD_LENGTH, PERIOD_COUNT, DEFAULT, SOL_DECIMALS, 
 	  MONTHLY_LIMITS_SIZE, WALLET_PURCHASE_SIZE, SALE_CONFIG_SIZE,
 };
 use events::*;
@@ -227,7 +227,7 @@ pub mod token_biu {
 
 		  let current_timestamp = Clock::get()?.unix_timestamp;
 
-    	let this_month = ((current_timestamp / PERIOD_LENGHT) % PERIOD_COUNT) as u8; // Approximate month calculation
+    	let this_month = ((current_timestamp / PERIOD_LENGTH) % PERIOD_COUNT) as u8; // Approximate month calculation
         monthly_limits.tokens_bought_this_month = DEFAULT;
         monthly_limits.current_month = this_month;
 
