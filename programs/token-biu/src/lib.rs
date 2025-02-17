@@ -11,7 +11,8 @@ use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2
 
 use crate::error::ErrorCode;
 use crate::constants::{
-      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR
+      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR, PERIOD_LENGHT, PERIOD_COUNT, DEFAULT, SOL_DECIMALS, 
+	  MONTHLY_LIMITS_SIZE, WALLET_PURCHASE_SIZE, SALE_CONFIG_SIZE,
 };
 use events::*;
 
@@ -63,8 +64,8 @@ pub mod token_biu {
     	if wallet_purchase.wallet == Pubkey::default() {
 
         	wallet_purchase.wallet = ctx.accounts.buyer.key();
-        	wallet_purchase.total_purchased = 0;
-        	wallet_purchase.last_purchased_timestamp = 0; // Start with 0 timestamp
+        	wallet_purchase.total_purchased = DEFAULT;
+        	wallet_purchase.last_purchased_timestamp = DEFAULT as i64; // Start with 0/Default timestamp
     	}
 
 
@@ -77,12 +78,10 @@ pub mod token_biu {
             &feed_id,
        )?;
       let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
-        
-   //    let sol_price_usd: f64 = 190.0;
 
         // Calculate token amount
         let token_price_usd = sale_config.token_price_usd;
-        let sol_amount_usd = sol_amount as f64 / 10_f64.powf(9.0) * sol_price_usd;
+        let sol_amount_usd = sol_amount as f64 / 10_f64.powf(SOL_DECIMALS) * sol_price_usd;
         
         let decimals = sale_config.mint_decimals;
         let token_amount = (sol_amount_usd / token_price_usd * 10_f64.powf(decimals as f64)) as u64;
@@ -94,7 +93,7 @@ pub mod token_biu {
 			let wallet_daily_limit = sale_config.wallet_purchase_limit;
 
 			if current_timestamp - wallet_purchase.last_purchased_timestamp > SECONDS_IN_A_DAY  {
-			wallet_purchase.total_purchased = 0;
+			wallet_purchase.total_purchased = DEFAULT;
 			}
 
 			require!(wallet_purchase.total_purchased + token_amount <= wallet_daily_limit, 
@@ -105,13 +104,14 @@ pub mod token_biu {
 
 		// Check monthly limits
     	let monthly_limits = &mut ctx.accounts.monthly_limits;
-    	let new_month = ((current_timestamp / 2629743) % 12) as u8; // Approximate month calculation
+    	let new_month = ((current_timestamp / PERIOD_LENGTH) % PERIOD_COUNT) as u8; // Approximate month calculation
 
 		  // Check if we've moved to a new month
 		if new_month != monthly_limits.current_month {
-        	monthly_limits.tokens_bought_this_month = 0;
+        	monthly_limits.tokens_bought_this_month = DEFAULT;
         	monthly_limits.current_month = new_month;
     	}
+
 
 
     	let monthly_limit = monthly_limits.limits[new_month as usize];
@@ -225,10 +225,10 @@ pub mod token_biu {
     	monthly_limits.limits = limits;
 	
 
-		let current_timestamp = Clock::get()?.unix_timestamp;
+		  let current_timestamp = Clock::get()?.unix_timestamp;
 
-    	let this_month = ((current_timestamp / 2629743) % 12) as u8; // Approximate month calculation
-        monthly_limits.tokens_bought_this_month = 0;
+    	let this_month = ((current_timestamp / PERIOD_LENGHT) % PERIOD_COUNT) as u8; // Approximate month calculation
+        monthly_limits.tokens_bought_this_month = DEFAULT;
         monthly_limits.current_month = this_month;
 
     	emit!(MonthlyLimitsSet {
@@ -247,7 +247,7 @@ pub struct InitializeSale<'info> {
     #[account(
         init,
         payer = authority,
-        space = ANCHOR_DISCRIMINATOR + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 1,
+        space = SALE_CONFIG_SIZE,
     )]
     pub sale_config: Account<'info, SaleConfig>,
 
@@ -308,7 +308,7 @@ pub struct BuyTokens<'info> {
 	#[account(
         init_if_needed,
         payer = buyer,
-        space = ANCHOR_DISCRIMINATOR + 32 + 8 + 8 +  1,
+        space = WALLET_PURCHASE_SIZE,
         seeds = [b"wallet_purchase", buyer.key().as_ref()],
         bump,
     )]
@@ -342,7 +342,7 @@ pub struct SetMonthlyLimits<'info> {
     #[account(
         init_if_needed,
         payer = authority,
-        space = ANCHOR_DISCRIMINATOR + (8 * 12) + 8 + 1,
+        space = MONTHLY_LIMITS_SIZE,
         seeds = [b"monthly_limits"],
         bump,
     )]

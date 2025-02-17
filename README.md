@@ -134,11 +134,38 @@ If any of these tools are missing, visit their official documentation for instal
 
 ---
 
-## 🎉 Congratulations!
+## 🔄 Changing the Period for Monthly Limits
 
-You’ve successfully deployed your Anchor program on the Solana blockchain! If you encounter any issues or have questions, feel free to reach out or consult the [Anchor documentation](https://project-serum.github.io/anchor/).
+The program supports dynamic periods for monthly limits, which can be configured manually in the `constants.rs` file. Here's how:
 
-Happy coding! 🚀
+1. **Open `constants.rs`**:
+   Locate the `constants.rs` file in your project:
+   ```
+   src/constants.rs
+   ```
+
+2. **Change the Period**:
+   Update the `PERIOD` constant to one of the following:
+   - **Hourly**: For hourly periods (1 hour).
+   - **Daily**: For daily periods (24 hours).
+   - **Monthly**: For monthly periods (~30.44 days).
+
+   Example:
+   ```rust
+   // Change this line to set the desired period
+   pub const PERIOD: Period = Period::Hourly; // or Period::Daily, Period::Monthly
+   ```
+
+3. **Rebuild and Redeploy**:
+   After changing the period, rebuild and redeploy the program:
+   ```bash
+   anchor build
+   anchor deploy
+   ```
+
+4. **Verify the Changes**:
+   The program will now use the updated period for all calculations, such as monthly limits and time-based checks.
 
 ---
+
 
