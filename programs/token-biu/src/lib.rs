@@ -11,7 +11,7 @@ use pyth_solana_receiver_sdk::price_update::{get_feed_id_from_hex, PriceUpdateV2
 
 use crate::error::ErrorCode;
 use crate::constants::{
-      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY, ANCHOR_DISCRIMINATOR, PERIOD_LENGTH, PERIOD_COUNT, DEFAULT, SOL_DECIMALS, 
+      MAX_AGE, SOL_USD_FEED_ID,SALE_AUTHORITY, SECONDS_IN_A_DAY , PERIOD_LENGTH, PERIOD_COUNT, DEFAULT, SOL_DECIMALS, 
 	  MONTHLY_LIMITS_SIZE, WALLET_PURCHASE_SIZE, SALE_CONFIG_SIZE,
 };
 use events::*;
@@ -57,8 +57,8 @@ pub mod token_biu {
         require!(!sale_config.paused, ErrorCode::SalePaused);
 
 
-		let wallet_purchase = &mut ctx.accounts.wallet_purchase;
-		let current_timestamp = Clock::get()?.unix_timestamp;
+		 let wallet_purchase = &mut ctx.accounts.wallet_purchase;
+		 let current_timestamp = Clock::get()?.unix_timestamp;
 
 		// Check if account needs initialization (wallet will be default/zero if new)
     	if wallet_purchase.wallet == Pubkey::default() {
@@ -70,13 +70,13 @@ pub mod token_biu {
 
 
         // Fetch SOL/USD price from Pyth
-        let feed_id: [u8; 32] =
-           get_feed_id_from_hex(SOL_USD_FEED_ID)?;
-        let price_data = ctx.accounts.price_update.get_price_no_older_than(
-            &Clock::get()?,
-            MAX_AGE,
-            &feed_id,
-       )?;
+       let feed_id: [u8; 32] =
+          get_feed_id_from_hex(SOL_USD_FEED_ID)?;
+       let price_data = ctx.accounts.price_update.get_price_no_older_than(
+           &Clock::get()?,
+           MAX_AGE,
+           &feed_id,
+      )?;
       let sol_price_usd = (price_data.price as f64) * 10f64.powi(price_data.exponent);
 
         // Calculate token amount
@@ -104,7 +104,7 @@ pub mod token_biu {
 
 		// Check monthly limits
     	let monthly_limits = &mut ctx.accounts.monthly_limits;
-    	let new_month = ((current_timestamp / PERIOD_LENGTH) % PERIOD_COUNT) as u8; // Approximate month calculation
+    	let new_month = ((current_timestamp / PERIOD_LENGTH) % PERIOD_COUNT) as u8;
 
 		  // Check if we've moved to a new month
 		if new_month != monthly_limits.current_month {

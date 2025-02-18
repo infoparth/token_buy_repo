@@ -17,16 +17,16 @@ import {
   PublicKey,
   SystemProgram,
 } from "@solana/web3.js";
-// import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
+import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { assert } from "chai";
 
 describe("token_biu", () => {
-console.log("---------------------------------------Transfer Tests-------------------------------------")
+  console.log("---------------------------------------Transfer Tests-------------------------------------")
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.TokenBiu as Program<TokenBiu>;
-  const initialTokenLimit = 10000000 * 1000000 ;
+  const initialTokenLimit = 10000000 * 1000000;
   let variableTokenLimit = 10000000 * 1000000;
 
   // Dynamically create wallet 1 and wallet 2
@@ -151,7 +151,7 @@ console.log("---------------------------------------Transfer Tests--------------
       const tokenLimit = new anchor.BN(initialTokenLimit);
 
       await program.methods
-        .initializeSale(tokenPriceUsd, mintDecimals, tokenLimit )
+        .initializeSale(tokenPriceUsd, mintDecimals, tokenLimit)
         .accounts({
           authority: wallet.publicKey,
           saleConfig: saleConfig.publicKey,
@@ -201,62 +201,62 @@ console.log("---------------------------------------Transfer Tests--------------
   });
 
   const [monthlyLimitsAccount, monthlyLimitsBump] = anchor.web3.PublicKey.findProgramAddressSync(
-  [Buffer.from("monthly_limits")],
-  program.programId
-);
-
-it("Sets monthly limits", async () => {
-  console.log("\n=======================================");
-  console.log("Setting monthly limits...");
-  console.log("=======================================");
-
-  const monthlyLimits = Array(12).fill(1000000 * 1000000).map(limit => new anchor.BN(limit));
-
-  // Add event listener for MonthlyLimitsSet
-  const listener = program.addEventListener(
-    "MonthlyLimitsSet",
-    (event, _slot) => {
-      console.log("MonthlyLimitsSet event emitted:", event);
-      assert.deepEqual(event.limits, monthlyLimits);
-    }
+    [Buffer.from("monthly_limits")],
+    program.programId
   );
 
-  try {
-    const tx = await program.methods
-      .setMonthlyLimits(monthlyLimits)
-      .accounts({
-        authority: wallet.publicKey,
-        saleConfig: saleConfig.publicKey,
-        monthlyLimits: monthlyLimitsAccount,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([wallet])
-      .rpc();
+  it("Sets monthly limits", async () => {
+    console.log("\n=======================================");
+    console.log("Setting monthly limits...");
+    console.log("=======================================");
 
-    console.log("Monthly limits set successfully:", tx);
+    const monthlyLimits = Array(12).fill(1000000 * 1000000).map(limit => new anchor.BN(limit));
 
-    // Verify the monthly limits were set correctly
-    const monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
-    monthlyLimitsState.limits.forEach((limit, index) => {
-      assert.equal(
-        limit.toString(),
-        monthlyLimits[index].toString(),
-        `Account limit at index ${index} doesn't match expected value`
-      );
-    });
-
-    assert.equal(
-      monthlyLimitsState.tokensBoughtThisMonth.toString(),
-      "0",
-      "Initial tokens bought should be 0"
+    // Add event listener for MonthlyLimitsSet
+    const listener = program.addEventListener(
+      "MonthlyLimitsSet",
+      (event, _slot) => {
+        console.log("MonthlyLimitsSet event emitted:", event);
+        assert.deepEqual(event.limits, monthlyLimits);
+      }
     );
-  } catch (error) {
-    console.error("Error setting monthly limits:", error);
-    throw error;
-  } finally {
-    program.removeEventListener(listener);
-  }
-});
+
+    try {
+      const tx = await program.methods
+        .setMonthlyLimits(monthlyLimits)
+        .accounts({
+          authority: wallet.publicKey,
+          saleConfig: saleConfig.publicKey,
+          monthlyLimits: monthlyLimitsAccount,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([wallet])
+        .rpc();
+
+      console.log("Monthly limits set successfully:", tx);
+
+      // Verify the monthly limits were set correctly
+      const monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+      monthlyLimitsState.limits.forEach((limit, index) => {
+        assert.equal(
+          limit.toString(),
+          monthlyLimits[index].toString(),
+          `Account limit at index ${index} doesn't match expected value`
+        );
+      });
+
+      assert.equal(
+        monthlyLimitsState.tokensBoughtThisMonth.toString(),
+        "0",
+        "Initial tokens bought should be 0"
+      );
+    } catch (error) {
+      console.error("Error setting monthly limits:", error);
+      throw error;
+    } finally {
+      program.removeEventListener(listener);
+    }
+  });
 
   it("Buys tokens", async () => {
     console.log("\n=======================================");
@@ -307,7 +307,7 @@ it("Sets monthly limits", async () => {
       );
 
       const tx = await program.methods
-        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
         .accounts({
           buyer: buyer.publicKey,
           saleAuthority: recipient.publicKey,
@@ -317,8 +317,8 @@ it("Sets monthly limits", async () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-		  walletPurchase: walletPurchaseAccount,
-		  monthlyLimits: monthlyLimitsAccount, 
+          walletPurchase: walletPurchaseAccount,
+          monthlyLimits: monthlyLimitsAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
@@ -408,7 +408,7 @@ it("Sets monthly limits", async () => {
       );
 
       const tx = await program.methods
-        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
         .accounts({
           buyer: buyer.publicKey,
           saleAuthority: newRecipient.publicKey,
@@ -418,9 +418,9 @@ it("Sets monthly limits", async () => {
           mint: mint,
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
-		  walletPurchase: walletPurchaseAccount,
+          walletPurchase: walletPurchaseAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-		  monthlyLimits: monthlyLimitsAccount, 
+          monthlyLimits: monthlyLimitsAccount,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -514,7 +514,7 @@ it("Sets monthly limits", async () => {
       );
 
       const tx = await program.methods
-        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
         .accounts({
           buyer: buyer.publicKey,
           saleAuthority: newRecipient.publicKey,
@@ -525,8 +525,8 @@ it("Sets monthly limits", async () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-		  monthlyLimits: monthlyLimitsAccount, 
-		  walletPurhcase: walletPurchaseAccount,
+          monthlyLimits: monthlyLimitsAccount,
+          walletPurhcase: walletPurchaseAccount,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:
@@ -568,7 +568,7 @@ it("Sets monthly limits", async () => {
     console.log("Changing Per Day Limit to ...", variableTokenLimit);
     console.log("=======================================");
 
-	let newTokenLimit = new anchor.BN(variableTokenLimit)
+    let newTokenLimit = new anchor.BN(variableTokenLimit)
 
     const tx = await program.methods
       .setPurchaseLimit(newTokenLimit)
@@ -622,7 +622,7 @@ it("Sets monthly limits", async () => {
       );
 
       const tx = await program.methods
-        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL))
+        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
         .accounts({
           buyer: buyer.publicKey,
           saleAuthority: newRecipient.publicKey,
@@ -633,8 +633,8 @@ it("Sets monthly limits", async () => {
           programTokenAccount: programTokenAccount,
           buyerTokenAccount: buyerTokenAccount,
           // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-		  walletPurchase: walletPurchaseAccount,
-		  monthlyLimits: monthlyLimitsAccount, 
+          walletPurchase: walletPurchaseAccount,
+          monthlyLimits: monthlyLimitsAccount,
           systemProgram: anchor.web3.SystemProgram.programId,
           tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
           associatedTokenProgram:

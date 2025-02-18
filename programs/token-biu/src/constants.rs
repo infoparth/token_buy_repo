@@ -32,8 +32,8 @@ impl Period {
     // Method to get the count of periods in a year
     pub const fn count(&self) -> i64 {
         match self {
-            Period::Hourly => 8760,
-            Period::Daily => 365,
+            Period::Hourly => 12,
+            Period::Daily => 12,
             Period::Monthly => 12,
         }
     }
@@ -49,7 +49,7 @@ Period::Hourly => For hourly periods - 1 hour
 
 */
 
-pub const PERIOD: Period = Period::Monthly;
+pub const PERIOD: Period = Period::Hourly;
 
 pub const PERIOD_LENGTH: i64 = PERIOD.length();
 pub const PERIOD_COUNT: i64 = PERIOD.count();
