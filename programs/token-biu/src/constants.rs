@@ -49,17 +49,30 @@ Period::Hourly => For hourly periods - 1 hour
 
 */
 
-pub const PERIOD: Period = Period::Hourly;
+pub const PERIOD: Period = Period::Monthly;
 
 pub const PERIOD_LENGTH: i64 = PERIOD.length();
 pub const PERIOD_COUNT: i64 = PERIOD.count();
 
 pub const DEFAULT: u64 = 0;
+pub const MONTHS_IN_A_YEAR: u8 = 12;
 
 // Decimal constants
 pub const SOL_DECIMALS: f64 = 9.0; // SOL has 9 decimal places
 
 // Space constants
-pub const MONTHLY_LIMITS_SIZE: usize = 8 + (8 * 12) + 8 + 1; // Size of MonthlyLimits account
+pub const MONTHLY_LIMITS_SIZE: usize = 8 + (8 * 14) + 8 + 8 + 1 + 1 ; // Size of MonthlyLimits account
 pub const WALLET_PURCHASE_SIZE: usize = 8 + 32 + 8 + 8 + 1; // Size of WalletPurchase account
 pub const SALE_CONFIG_SIZE: usize = 8 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 1; // Size of SaleConfig account
+
+// Vesting schedule constants
+pub const YEAR1_START: i64 = 1735689600; // March 1, 2025
+pub const YEAR1_END: i64 = 1767225600;   // March 1, 2026
+pub const YEAR2_END: i64 = 1783296000;   // September 1, 2026
+pub const MONTHLY_UNLOCK: u64 = 2_660_000; // 2.66 million $LAL per month
+pub const BULK_UNLOCK: u64 = 64_000_000;   // 64 million $LAL
+pub const MARCH: i64 = 3;
+pub const SEPTEMBER: u8 = 9;
+pub const FIRST_HALF: usize = 12;
+pub const SECOND_HALF: usize = 13;
+

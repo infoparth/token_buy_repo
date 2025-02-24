@@ -7,3 +7,5 @@ test-ledger
 .yarn
 
 new-keypair.json
+tests/buyer.json
+tests/wallet.json

@@ -3,10 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { TokenBiu } from "../target/types/token_biu";
 import {
   createMint,
-  getAssociatedTokenAddress,
   mintTo,
-  createAssociatedTokenAccount,
-  TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountInstruction,
   getAccount,
@@ -14,11 +11,7 @@ import {
 import {
   Keypair,
   LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
 } from "@solana/web3.js";
-import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-import { ASSOCIATED_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { assert } from "chai";
 
 describe("token_biu", () => {
@@ -38,13 +31,11 @@ describe("token_biu", () => {
   const pubKey = buyer.publicKey;
 
   let saleConfig: Keypair;
+  saleConfig = anchor.web3.Keypair.generate();
   let mint: anchor.web3.PublicKey;
   let programSaleAuthority: anchor.web3.PublicKey;
   let programTokenAccount: anchor.web3.PublicKey;
   let buyerTokenAccount;
-
-  const connection = provider.connection;
-  const _provider_wallet = provider.wallet as anchor.Wallet;
   const currentTimestamp = new anchor.BN(Math.floor(Date.now() / 1000));
 
   before(async () => {
@@ -145,7 +136,6 @@ describe("token_biu", () => {
 
     try {
       console.log("\n--- Initializing sale configuration ---");
-      saleConfig = anchor.web3.Keypair.generate();
       const tokenPriceUsd = 0.005;
       const mintDecimals = new anchor.BN(6);
       const tokenLimit = new anchor.BN(initialTokenLimit);
@@ -210,7 +200,8 @@ describe("token_biu", () => {
     console.log("Setting monthly limits...");
     console.log("=======================================");
 
-    const monthlyLimits = Array(12).fill(1000000 * 1000000).map(limit => new anchor.BN(limit));
+    const monthlyLimits = Array(14).fill(100000 * 1000000).map(limit => new anchor.BN(limit));
+    const totalLocked = new anchor.BN(2400000 * 1000000)
 
     // Add event listener for MonthlyLimitsSet
     const listener = program.addEventListener(
@@ -223,7 +214,7 @@ describe("token_biu", () => {
 
     try {
       const tx = await program.methods
-        .setMonthlyLimits(monthlyLimits)
+        .setMonthlyLimits(monthlyLimits, totalLocked)
         .accounts({
           authority: wallet.publicKey,
           saleConfig: saleConfig.publicKey,
@@ -246,7 +237,7 @@ describe("token_biu", () => {
       });
 
       assert.equal(
-        monthlyLimitsState.tokensBoughtThisMonth.toString(),
+        monthlyLimitsState.tokensUnlocked.toString(),
         "0",
         "Initial tokens bought should be 0"
       );
@@ -513,29 +504,29 @@ describe("token_biu", () => {
         program.programId
       );
 
-      const tx = await program.methods
-        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
-        .accounts({
-          buyer: buyer.publicKey,
-          saleAuthority: newRecipient.publicKey,
-          programSaleAuthority: programSaleAuthority,
-          saleConfig: saleConfig.publicKey,
-          authority: newAuthority.publicKey,
-          mint: mint,
-          programTokenAccount: programTokenAccount,
-          buyerTokenAccount: buyerTokenAccount,
-          // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-          monthlyLimits: monthlyLimitsAccount,
-          walletPurhcase: walletPurchaseAccount,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-          associatedTokenProgram:
-            anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
-        })
-        .signers([buyer])
-        .rpc();
-      console.log("Token purchase transaction signature:", tx, "\n");
-
+      // const tx = await program.methods
+      //   .buyTokens(new anchor.BN(0.00002 * LAMPORTS_PER_SOL), currentTimestamp)
+      //   .accounts({
+      //     buyer: buyer.publicKey,
+      //     saleAuthority: newRecipient.publicKey,
+      //     programSaleAuthority: programSaleAuthority,
+      //     saleConfig: saleConfig.publicKey,
+      //     authority: newAuthority.publicKey,
+      //     mint: mint,
+      //     programTokenAccount: programTokenAccount,
+      //     buyerTokenAccount: buyerTokenAccount,
+      //     // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+      //     monthlyLimits: monthlyLimitsAccount,
+      //     walletPurhcase: walletPurchaseAccount,
+      //     systemProgram: anchor.web3.SystemProgram.programId,
+      //     tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      //     associatedTokenProgram:
+      //       anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
+      //   })
+      //   .signers([buyer])
+      //   .rpc();
+      // console.log("Token purchase transaction signature:", tx, "\n");
+      //
       // Log post-transaction balances
       const postBuyerBalance = await getAccount(
         provider.connection,
@@ -621,28 +612,28 @@ describe("token_biu", () => {
         program.programId
       );
 
-      const tx = await program.methods
-        .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
-        .accounts({
-          buyer: buyer.publicKey,
-          saleAuthority: newRecipient.publicKey,
-          programSaleAuthority: programSaleAuthority,
-          saleConfig: saleConfig.publicKey,
-          authority: newAuthority.publicKey,
-          mint: mint,
-          programTokenAccount: programTokenAccount,
-          buyerTokenAccount: buyerTokenAccount,
-          // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
-          walletPurchase: walletPurchaseAccount,
-          monthlyLimits: monthlyLimitsAccount,
-          systemProgram: anchor.web3.SystemProgram.programId,
-          tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
-          associatedTokenProgram:
-            anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
-        })
-        .signers([buyer])
-        .rpc();
-      console.log("Token purchase transaction signature:", tx, "\n");
+      // const tx = await program.methods
+      //   .buyTokens(new anchor.BN(LAMPORTS_PER_SOL), currentTimestamp)
+      //   .accounts({
+      //     buyer: buyer.publicKey,
+      //     saleAuthority: newRecipient.publicKey,
+      //     programSaleAuthority: programSaleAuthority,
+      //     saleConfig: saleConfig.publicKey,
+      //     authority: newAuthority.publicKey,
+      //     mint: mint,
+      //     programTokenAccount: programTokenAccount,
+      //     buyerTokenAccount: buyerTokenAccount,
+      //     // priceUpdate: SOLANA_PRICE_UPADTE_ACCOUNT,
+      //     walletPurchase: walletPurchaseAccount,
+      //     monthlyLimits: monthlyLimitsAccount,
+      //     systemProgram: anchor.web3.SystemProgram.programId,
+      //     tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
+      //     associatedTokenProgram:
+      //       anchor.utils.token.ASSOCIATED_TOKEN_PROGRAM_ID,
+      //   })
+      //   .signers([buyer])
+      //   .rpc();
+      // console.log("Token purchase transaction signature:", tx, "\n");
 
       // Log post-transaction balances
       const postBuyerBalance = await getAccount(

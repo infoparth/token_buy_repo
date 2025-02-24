@@ -37,8 +37,10 @@ pub enum ErrorCode {
 	PurchaseLimitExceeded, 
 
 	#[msg("Monthly Limit Exceeded")]
-	MonthlyLimitExceeded
+	MonthlyLimitExceeded, 
 
+	#[msg("Invalid Calculation Error")]
+  InvalidCalculation,
 
 
 }

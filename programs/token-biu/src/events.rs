@@ -35,6 +35,16 @@ pub struct WalletLimitSet {
 	
 #[event]
 pub struct MonthlyLimitsSet {
-    pub limits: [u64; 12],
+    pub limits: [u64; 14],
+}
+
+#[event]
+pub struct VestingEnabled {
+    pub vesting: bool,
+}
+
+#[event]
+pub struct VestingDisabled {
+    pub vesting: bool,
 }
 
