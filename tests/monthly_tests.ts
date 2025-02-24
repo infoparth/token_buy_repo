@@ -208,7 +208,9 @@ describe("token_biu", () => {
     const _monthlyLimits = Array(12).fill(1000 * 1000000).map(limit => new anchor.BN(limit));
     const values = [100, 100, 100, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 600000, 600000]
     const monthlyLimits = values.map(value => new anchor.BN(value * 1000000));
-    const totalTokens = new anchor.BN(2400000 * 1000000)
+    // Calculate total tokens needed for all months
+    const totalMonthlyLimits = values.reduce((sum, val) => sum + val, 0) * 1000000;
+    const totalTokens = new anchor.BN(totalMonthlyLimits)
 
     // Add event listener for MonthlyLimitsSet
     const listener = program.addEventListener(

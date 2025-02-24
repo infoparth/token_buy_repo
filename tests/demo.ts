@@ -36,7 +36,7 @@ describe("token_biu", () => {
   // const buyer: Keypair = Keypair.fromSecretKey(
   //   new Uint8Array(JSON.parse(fs.readFileSync("./buyer.json", "utf-8")))
   // );
-   const wallet = Keypair.fromSecretKey(
+  const wallet = Keypair.fromSecretKey(
     new Uint8Array(JSON.parse(fs.readFileSync(path.join(__dirname, "wallet.json"), "utf-8")))
   );
   const buyer = Keypair.fromSecretKey(
@@ -58,6 +58,10 @@ describe("token_biu", () => {
 
   // Monthly values for testing - in tokens with 6 decimals (e.g., 10000 * 1000000 = 10,000,000,000)
   const monthlyValues = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 6000, 6000];
+
+
+  // Calculate total tokens needed for all months
+  const totalMonthlyLimits = monthlyValues.reduce((sum, val) => sum + val, 0) * 1000000;
 
   // Fund the buyer with enough SOL for all tests
   const BUYER_SOL_AMOUNT = 100 * LAMPORTS_PER_SOL;
@@ -215,8 +219,6 @@ describe("token_biu", () => {
       const TOKEN_PRICE_USD = 0.005;
       const SOL_PRICE_USD = 190.0;
 
-      // Calculate total tokens needed for all months
-      const totalMonthlyLimits = monthlyValues.reduce((sum, val) => sum + val, 0) * 1000000;
 
       // Add extra tokens for safety
       const MINT_AMOUNT = totalMonthlyLimits * 2;
@@ -258,7 +260,7 @@ describe("token_biu", () => {
     console.log("=======================================");
 
     const monthlyLimits = monthlyValues.map(value => new anchor.BN(value * 1000000));
-    const totalLocked = new anchor.BN(24000 * 1000000);
+    const totalLocked = new anchor.BN(totalMonthlyLimits);
 
     // Add event listener for MonthlyLimitsSet
     const listener = program.addEventListener(
