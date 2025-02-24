@@ -74,9 +74,9 @@ pub struct BuyTokens<'info> {
 }
 
 impl<'info> BuyTokens<'info> {
-    pub fn buy(&mut self, sol_amount: u64) -> Result<()> {
+    pub fn buy(&mut self, sol_amount: u64, current_timestamp: i64) -> Result<()> {
 
-        let current_timestamp = Clock::get()?.unix_timestamp;
+        // let current_timestamp = Clock::get()?.unix_timestamp;
 
         self.check_sale_paused()?;
         self.initialize_wallet_purchase_if_needed()?;
@@ -184,7 +184,7 @@ impl<'info> BuyTokens<'info> {
 
         let starting_month = self.monthly_limits.starting_month;
 
-        let tokens_to_be_unlocked_this_year = self.monthly_limits.total_locked / 2;
+        let tokens_to_be_unlocked_this_year = self.monthly_limits.total_locked_in_first_year;
  
         let monthly_limits_variable: u64 = (MONTHS_IN_A_YEAR - this_month) as u64 * self.monthly_limits.limits[(this_month - starting_month) as usize];
 
@@ -224,7 +224,7 @@ impl<'info> BuyTokens<'info> {
         // this is for the first six months period of the second year
         if this_month < SEPTEMBER{  
 
-        let total_tokens_locked = self.monthly_limits.total_locked ;
+        let total_tokens_locked = self.monthly_limits.total_locked_in_first_year + self.monthly_limits.total_locked_in_second_year ;
 
         let monthly_limits_variable: u64 = self.monthly_limits.limits[FIRST_HALF];
 
@@ -260,7 +260,7 @@ impl<'info> BuyTokens<'info> {
         // This is for the second six months period of the second year
         else{
 
-        let total_tokens_locked = self.monthly_limits.total_locked ;
+        let total_tokens_locked = self.monthly_limits.total_locked_in_first_year + self.monthly_limits.total_locked_in_second_year ;
 
         let tokens_unlocked_so_far: u64 = self.monthly_limits.tokens_unlocked;
 

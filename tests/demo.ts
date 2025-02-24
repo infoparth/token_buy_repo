@@ -72,22 +72,22 @@ describe("token_biu", () => {
     console.log("=======================================");
 
     try {
-      // console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
-      // await Promise.all([
-      //   provider.connection.requestAirdrop(
-      //     wallet.publicKey,
-      //     5 * LAMPORTS_PER_SOL
-      //   ),
-      //   provider.connection.requestAirdrop(
-      //     buyer.publicKey,
-      //     BUYER_SOL_AMOUNT
-      //   ),
-      // ]).then((signatures) =>
-      //   Promise.all(
-      //     signatures.map((sig) => provider.connection.confirmTransaction(sig))
-      //   )
-      // );
-      // console.log("Airdrop completed.\n");
+      console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
+      await Promise.all([
+        provider.connection.requestAirdrop(
+          wallet.publicKey,
+          5 * LAMPORTS_PER_SOL
+        ),
+        provider.connection.requestAirdrop(
+          buyer.publicKey,
+          BUYER_SOL_AMOUNT
+        ),
+      ]).then((signatures) =>
+        Promise.all(
+          signatures.map((sig) => provider.connection.confirmTransaction(sig))
+        )
+      );
+      console.log("Airdrop completed.\n");
     } catch (error) {
       console.error("Error during SOL airdrop:", error);
     }
@@ -326,8 +326,8 @@ describe("token_biu", () => {
 
     for (let month = 0; month < 14; month++) {
 
-      let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
-      let hourlyTimestamp = currentTimestamp.add(new anchor.BN(month * 3600)); // ~1 month in seconds
+      // let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
+      let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 3600)); // ~1 month in seconds
       if (month === 12) {
         solForPurchase = 0.2;
       }
@@ -336,7 +336,7 @@ describe("token_biu", () => {
         monthlyTimestamp = currentTimestamp.add(new anchor.BN((8 + month) * 2629743));
       }
 
-      console.log(`\n Testing Month according to timestamp ---\n`, (monthlyTimestamp.toNumber() / 2629743) % 12);
+      console.log(`\n Testing Month according to timestamp ---\n`, (monthlyTimestamp.toNumber() / 3600) % 12);
       console.log(`\n--- Testing Month ${month} ---\n`);
 
       try {

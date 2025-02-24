@@ -24,7 +24,8 @@ pub struct WalletPurchase {
 #[account]
 pub struct MonthlyLimits {
     pub limits: [u64; 14],
-    pub total_locked: u64,          // Total tokens locked (160 million)
+    pub total_locked_in_first_year: u64, 
+    pub total_locked_in_second_year: u64,
     pub tokens_unlocked: u64,       // Tokens unlocked so far
     pub starting_month: u8,
     pub is_vesting_enabled: bool,
