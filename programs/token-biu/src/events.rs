@@ -36,6 +36,7 @@ pub struct WalletLimitSet {
 #[event]
 pub struct MonthlyLimitsSet {
     pub limits: [u64; 14],
+    pub timestamps: [i64; 14],
 }
 
 #[event]

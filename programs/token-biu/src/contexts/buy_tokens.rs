@@ -167,122 +167,45 @@ impl<'info> BuyTokens<'info> {
             return Ok(());
         }
 
-        let this_month = ((current_timestamp / PERIOD_LENGTH) % PERIOD_COUNT) as u8;
+        let timestamps = self.monthly_limits.timestamps;
+        let limits = self.monthly_limits.limits;
 
-        if current_timestamp <= YEAR1_END{
-            self.check_monthly_limits_for_first_year(token_amount, this_month)
+        if self.monthly_limits.last_checked_index  as usize == timestamps.len() - 1{
+            return Ok(());
+        } 
+
+
+
+        if current_timestamp <= self.monthly_limits.timestamps[self.monthly_limits.last_checked_index  as usize + 1]{
+            if self.monthly_limits.tokens_available == 0 && self.monthly_limits.tokens_unlocked == 0{
+                self.monthly_limits.tokens_available = limits[self.monthly_limits.last_checked_index as usize];
+            }
+        require!(
+            token_amount <= self.monthly_limits.tokens_available,
+            ErrorCode::MonthlyLimitExceeded
+        );
+            Ok(())
         }
         else{
-            self.check_monthly_limits_for_second_year(token_amount, this_month)
-        }
-    }
+            let mut i = self.monthly_limits.last_checked_index as usize + 1;
+            let mut temp_var  = self.monthly_limits.last_checked_index as usize;
 
-        
-
-    /// Check monthly limits for first year
-    fn check_monthly_limits_for_first_year(&self, token_amount: u64, this_month: u8) -> Result<()>{
-
-        let starting_month = self.monthly_limits.starting_month;
-
-        let tokens_to_be_unlocked_this_year = self.monthly_limits.total_locked_in_first_year;
- 
-        let monthly_limits_variable: u64 = (MONTHS_IN_A_YEAR - this_month) as u64 * self.monthly_limits.limits[(this_month - starting_month) as usize];
-
-        let tokens_unlocked_so_far: u64 = self.monthly_limits.tokens_unlocked;
-
-
-
-          if tokens_to_be_unlocked_this_year < monthly_limits_variable {
-                        msg!("Overflow detected: tokens_to_be_unlocked_this_year < monthly_limits_variable");
-                        return Err(ErrorCode::InvalidCalculation.into());
-                    }
-
-                let remaining_tokens = tokens_to_be_unlocked_this_year
-                    .checked_sub(monthly_limits_variable)
-                        .ok_or(ErrorCode::InvalidCalculation)?;
-
-                if remaining_tokens < tokens_unlocked_so_far {
-                        msg!("Overflow detected: remaining_tokens < tokens_unlocked_so_far");
-                        return Err(ErrorCode::InvalidCalculation.into());
-                    }
-
-                let tokens_available_this_month = remaining_tokens
-                    .checked_sub(tokens_unlocked_so_far)
-                        .ok_or(ErrorCode::InvalidCalculation)?;
+            while i < timestamps.len() && current_timestamp >= timestamps[i]{
+                temp_var = i;
+                self.monthly_limits.tokens_available += limits[i];
+                i += 1;
+            }
+            self.monthly_limits.last_checked_index = temp_var as u8;
         require!(
-            token_amount <= tokens_available_this_month,
+            token_amount <= self.monthly_limits.tokens_available,
             ErrorCode::MonthlyLimitExceeded
         );
-
-        Ok(())
-
-    }
-
-    /// Check monthly limits for second year
-    fn check_monthly_limits_for_second_year(&self, token_amount: u64, this_month: u8) -> Result<()>{
-
-        // this is for the first six months period of the second year
-        if this_month < SEPTEMBER{  
-
-        let total_tokens_locked = self.monthly_limits.total_locked_in_first_year + self.monthly_limits.total_locked_in_second_year ;
-
-        let monthly_limits_variable: u64 = self.monthly_limits.limits[FIRST_HALF];
-
-        let tokens_unlocked_so_far: u64 = self.monthly_limits.tokens_unlocked;
-
-          if total_tokens_locked < monthly_limits_variable {
-                        msg!("Overflow detected: total_tokens_locked < monthly_limits_variable");
-                        return Err(ErrorCode::InvalidCalculation.into());
-                    }
-
-                let remaining_tokens = total_tokens_locked
-                    .checked_sub(monthly_limits_variable)
-                        .ok_or(ErrorCode::InvalidCalculation)?;
-
-                if remaining_tokens < tokens_unlocked_so_far {
-                        msg!("Overflow detected: remaining_tokens < tokens_unlocked_so_far");
-                        return Err(ErrorCode::InvalidCalculation.into());
-                    }
-
-                let tokens_available_to_buy = remaining_tokens
-                    .checked_sub(tokens_unlocked_so_far)
-                        .ok_or(ErrorCode::InvalidCalculation)?;
-
-        require!(
-            token_amount <= tokens_available_to_buy,
-            ErrorCode::MonthlyLimitExceeded
-        );
-
-        Ok(())
-
+            Ok(())
         }
 
-        // This is for the second six months period of the second year
-        else{
-
-        let total_tokens_locked = self.monthly_limits.total_locked_in_first_year + self.monthly_limits.total_locked_in_second_year ;
-
-        let tokens_unlocked_so_far: u64 = self.monthly_limits.tokens_unlocked;
+   }
 
 
-          if total_tokens_locked < tokens_unlocked_so_far {
-                        msg!("Overflow detected: total_tokens_locked < tokens_unlocked_so_far");
-                        return Err(ErrorCode::InvalidCalculation.into());
-                    }
-
-                let tokens_available_to_buy = total_tokens_locked
-                    .checked_sub(tokens_unlocked_so_far)
-                        .ok_or(ErrorCode::InvalidCalculation)?;
-
-        require!(
-            token_amount <= tokens_available_to_buy,
-            ErrorCode::MonthlyLimitExceeded
-        );
-
-        Ok(())
-
-        }
-    }
 
     /// Transfer SOL from buyer to sale authority
     fn transfer_sol(&self, sol_amount: u64) -> Result<()> {

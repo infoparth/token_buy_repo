@@ -23,20 +23,18 @@ pub struct SetMonthlyLimits<'info> {
 }
 
 impl<'info> SetMonthlyLimits<'info> {
-    pub fn set_limits(&mut self, limits: [u64; 14], total_locked_for_first_year: u64, total_locked_for_second_year: u64) -> Result<()> {
+    pub fn set_limits(&mut self, limits: [u64; 14], timestamps: [i64; 14]) -> Result<()> {
 
-        let current_timestamp = Clock::get()?.unix_timestamp;
-        let this_month = ((current_timestamp / PERIOD_LENGTH) % PERIOD_COUNT) as u8;
 
         self.monthly_limits.limits = limits;
-        self.monthly_limits.starting_month = this_month;
-        self.monthly_limits.total_locked_in_first_year = total_locked_for_first_year;
-        self.monthly_limits.total_locked_in_second_year = total_locked_for_second_year;
+        self.monthly_limits.timestamps = timestamps;
         self.monthly_limits.tokens_unlocked = DEFAULT;
         self.monthly_limits.is_vesting_enabled = true;
+        self.monthly_limits.tokens_available = DEFAULT;
 
         emit!(MonthlyLimitsSet {
             limits: self.monthly_limits.limits,
+            timestamps: self.monthly_limits.timestamps,
         });
 
         emit!(VestingEnabled {

@@ -61,7 +61,7 @@ pub const MONTHS_IN_A_YEAR: u8 = 12;
 pub const SOL_DECIMALS: f64 = 9.0; // SOL has 9 decimal places
 
 // Space constants
-pub const MONTHLY_LIMITS_SIZE: usize = 8 + (8 * 14) + 8 + 8 + 8 + 1 + 1 ; // Size of MonthlyLimits account
+pub const MONTHLY_LIMITS_SIZE: usize = 8 + (8 * 14) + (8 * 14) + 8 + 8 + 1 + 1 ; // Size of MonthlyLimits account
 pub const WALLET_PURCHASE_SIZE: usize = 8 + 32 + 8 + 8 + 1; // Size of WalletPurchase account
 pub const SALE_CONFIG_SIZE: usize = 8 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 1; // Size of SaleConfig account
 

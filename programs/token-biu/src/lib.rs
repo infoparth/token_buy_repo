@@ -48,8 +48,8 @@ pub mod token_biu {
         ctx.accounts.resume()
     }
 
-    pub fn set_monthly_limits(ctx: Context<SetMonthlyLimits>, limits: [u64; 14], total_locked_in_first_year: u64, token_locked_in_second_year:u64) -> Result<()> {
-        ctx.accounts.set_limits(limits, total_locked_in_first_year, token_locked_in_second_year)
+    pub fn set_monthly_limits(ctx: Context<SetMonthlyLimits>, limits: [u64; 14], timestamps: [i64; 14]) -> Result<()> {
+        ctx.accounts.set_limits(limits, timestamps)
     }
 
     pub fn enable_vesting(ctx: Context<VestingControl>) -> Result<()> {
