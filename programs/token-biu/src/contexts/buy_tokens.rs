@@ -162,8 +162,7 @@ impl<'info> BuyTokens<'info> {
     /// Check monthly limits
     fn check_monthly_limits(&mut self, token_amount: u64, current_timestamp: i64) -> Result<()> {
 
-        if !self.monthly_limits.is_vesting_enabled{
-
+       if !self.monthly_limits.is_vesting_enabled{
             return Ok(());
         }
 
@@ -180,12 +179,19 @@ impl<'info> BuyTokens<'info> {
             if self.monthly_limits.tokens_available == 0 && self.monthly_limits.tokens_unlocked == 0{
                 self.monthly_limits.tokens_available = limits[self.monthly_limits.last_checked_index as usize];
             }
+
+            if self.monthly_limits.last_checked_index == (MONTHS_IN_A_YEAR - 1){
+                self.monthly_limits.tokens_available += limits[MONTHS_IN_A_YEAR as usize];
+                self.monthly_limits.last_checked_index += 1;
+            }
+
         require!(
             token_amount <= self.monthly_limits.tokens_available,
             ErrorCode::MonthlyLimitExceeded
         );
             Ok(())
         }
+
         else{
             let mut i = self.monthly_limits.last_checked_index as usize + 1;
             let mut temp_var  = self.monthly_limits.last_checked_index as usize;
@@ -196,6 +202,7 @@ impl<'info> BuyTokens<'info> {
                 i += 1;
             }
             self.monthly_limits.last_checked_index = temp_var as u8;
+
         require!(
             token_amount <= self.monthly_limits.tokens_available,
             ErrorCode::MonthlyLimitExceeded
@@ -252,6 +259,7 @@ impl<'info> BuyTokens<'info> {
         self.wallet_purchase.total_purchased += token_amount;
         self.wallet_purchase.last_purchased_timestamp = current_timestamp;
         self.monthly_limits.tokens_unlocked += token_amount;
+        self.monthly_limits.tokens_available -= token_amount;
 
         Ok(())
     }
