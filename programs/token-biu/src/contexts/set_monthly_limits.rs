@@ -31,6 +31,7 @@ impl<'info> SetMonthlyLimits<'info> {
         self.monthly_limits.tokens_unlocked = DEFAULT;
         self.monthly_limits.is_vesting_enabled = true;
         self.monthly_limits.tokens_available = DEFAULT;
+        self.monthly_limits.last_checked_index = DEFAULT as u8;
 
         emit!(MonthlyLimitsSet {
             limits: self.monthly_limits.limits,

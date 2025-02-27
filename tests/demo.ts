@@ -51,9 +51,9 @@ describe("token_biu", () => {
   const currentTimestamp = new anchor.BN(Math.floor(Date.now() / 1000));
 
   // Monthly values for testing - in tokens with 6 decimals (e.g., 10000 * 1000000 = 10,000,000,000)
-  const monthlyValues = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 100000, 100000];
-  const timestamps = generateTestTimestamps();
+  const monthlyValues = [100, 200, 50, 700, 280, 120, 180, 500, 300, 231, 900, 560, 1000, 1000];
 
+  const timestamps = generateTestTimestamps();
 
   // Calculate total tokens needed for all months
   const totalMonthlyLimits = monthlyValues.reduce((sum, val) => sum + val, 0) * 1000000;
@@ -62,27 +62,28 @@ describe("token_biu", () => {
   const BUYER_SOL_AMOUNT = 100 * LAMPORTS_PER_SOL;
 
   before(async () => {
+    console.log("The wallet and buyer key is: ", wallet.publicKey.toString(), buyer.publicKey.toString());
     console.log("\n=======================================");
     console.log("Starting setup in `before` hook...");
     console.log("=======================================");
 
     try {
-      console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
-      await Promise.all([
-        provider.connection.requestAirdrop(
-          wallet.publicKey,
-          5 * LAMPORTS_PER_SOL
-        ),
-        provider.connection.requestAirdrop(
-          buyer.publicKey,
-          BUYER_SOL_AMOUNT
-        ),
-      ]).then((signatures) =>
-        Promise.all(
-          signatures.map((sig) => provider.connection.confirmTransaction(sig))
-        )
-      );
-      console.log("Airdrop completed.\n");
+      // console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
+      // await Promise.all([
+      //   provider.connection.requestAirdrop(
+      //     wallet.publicKey,
+      //     5 * LAMPORTS_PER_SOL
+      //   ),
+      //   provider.connection.requestAirdrop(
+      //     buyer.publicKey,
+      //     BUYER_SOL_AMOUNT
+      //   ),
+      // ]).then((signatures) =>
+      //   Promise.all(
+      //     signatures.map((sig) => provider.connection.confirmTransaction(sig))
+      //   )
+      // );
+      // console.log("Airdrop completed.\n");
     } catch (error) {
       console.error("Error during SOL airdrop:", error);
     }
@@ -137,6 +138,7 @@ describe("token_biu", () => {
       console.log(
         "\n--- Creating associated token account for program sale authority ---"
       );
+
       const ataInstruction = createAssociatedTokenAccountInstruction(
         wallet.publicKey, // Payer
         programTokenAccount, // Associated Token Account
@@ -277,8 +279,8 @@ describe("token_biu", () => {
 
       // Verify the monthly limits were set correctly
       const monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
-      monthlyLimitsState.limits.map((value, key) => console.log(`The limit value for month ${key}, is ${value / 1e6}`));
-      monthlyLimitsState.timestamps.map((value, key) => console.log(`The timestamp for month ${key}, is ${value}`));
+      // monthlyLimitsState.limits.map((value, key) => console.log(`The limit value for month ${key}, is ${value / 1e6}`));
+      // monthlyLimitsState.timestamps.map((value, key) => console.log(`The timestamp for month ${key}, is ${value}`));
 
       assert.isTrue(
         monthlyLimitsState.tokensUnlocked.toNumber() == 0,
@@ -298,38 +300,57 @@ describe("token_biu", () => {
     console.log("=======================================");
 
     let cumulativeLimit = 0;
+
     let preBalance = 0;
+
+    let rem = 0;
 
     for (let month = 0; month < 14; month++) {
 
-      let solForPurchase = 0.02;
-
-      if (month === 1) {
-        solForPurchase = 0.03;
+      if (month % 2 == 0) {
+        rem = 20;
       }
-      let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
+      else {
+        rem = -20
+      }
+
+      let expectedSol = calcluateSolAmount(monthlyValues[month] - rem)
+      // let solForPurchase = 0.02;
+      //
+      // if (month === 1) {
+      //   solForPurchase = 0.03;
+      // }
+      // let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
+      let monthlyTimestamp = new anchor.BN(month * 2629743); // ~1 month in seconds
+
       if (month === 12) {
-        solForPurchase = 2;
+        // solForPurchase = 0.02;
       }
       if (month === 13) {
-        solForPurchase = 2;
-        monthlyTimestamp = currentTimestamp.add(new anchor.BN((9 + month) * 2629743));
+        // solForPurchase = 0.02;
+        monthlyTimestamp = new anchor.BN((9 + month) * 2629743);
       }
 
-      console.log(`\n Testing Month according to timestamp ---\n`, (monthlyTimestamp.toNumber() / 2629743) % 12);
+      console.log(`\n Testing Month according to timestamp ---\n`);
+
+      let date = new Date(monthlyTimestamp.toNumber() * 1000); // Convert to milliseconds
+
+      // Extract month and year
+      let year = date.getUTCFullYear();
+      let monthName = date.toLocaleString('default', { month: 'long' });
+
+      console.log(`The timestamp corresponds to: ${monthName} ${year}`);
+
+
       console.log(`\n--- Testing Month ${month} ---\n`);
 
       try {
 
-        let monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
-        console.log("The current timestamp is:", monthlyTimestamp.toString())
-        console.log("The last checked index before buy is: ", monthlyLimitsState.lastCheckedIndex)
-        console.log("The current timestamp according to last checked index is: ", monthlyLimitsState.timestamps[monthlyLimitsState.lastCheckedIndex].toString())
-
         // Make a purchase below the limit
         console.log(`\nMaking purchase below limit for month ${month} \n`);
+
         await program.methods
-          .buyTokens(new anchor.BN(solForPurchase * LAMPORTS_PER_SOL), monthlyTimestamp)
+          .buyTokens(new anchor.BN(expectedSol * LAMPORTS_PER_SOL), monthlyTimestamp)
           .accounts({
             buyer: buyer.publicKey,
             saleAuthority: recipient.publicKey,
@@ -348,13 +369,20 @@ describe("token_biu", () => {
           .signers([buyer])
           .rpc();
 
+        let monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+        // console.log("The raw timestamp is: ", monthlyLimitsState.demoTime.toNumber())
+
+        // let date = new Date(monthlyLimitsState.demoTime.toNumber() * 1000); // Convert to milliseconds
+
+        // // Extract month and year
+        // let year = date.getUTCFullYear();
+        // let monthName = date.toLocaleString('default', { month: 'long' });
+        // console.log("The current month according to contract is: ", monthName, year)
         // Verify monthly limits state
-        console.log("Total tokens unlocked uptill this point are: ", monthlyLimitsState.tokensUnlocked.toNumber() / 1e6);
-        console.log("Total tokens available uptill this point are: ", monthlyLimitsState.tokensAvailable.toNumber() / 1e6);
-        console.log(`Tokens bought in ${month} are: `, (monthlyLimitsState.tokensUnlocked.toNumber() - preBalance) / 1e6);
-        console.log(`Tokens bought in month ${month}: ${monthlyLimitsState.tokensUnlocked.toString()}`);
+        // console.log("Total tokens unlocked uptill this point are: ", monthlyLimitsState.tokensUnlocked.toNumber() / 1e6);
+        // console.log("\nTotal tokens available uptill this point are: ", monthlyLimitsState.tokensAvailable.toNumber() / 1e6);
+        console.log(`\nTokens bought in ${month} are: `, (monthlyLimitsState.tokensUnlocked.toNumber() - preBalance) / 1e6, "\n");
         console.log(`\nMonth limit: ${monthlyLimitsState.limits[month].toNumber() / 1e6}\n`);
-        preBalance = monthlyLimitsState.tokensUnlocked.toNumber();
 
 
         // assert.isTrue(
@@ -401,6 +429,7 @@ describe("token_biu", () => {
 
           console.log(`\nTokens Remaining for month ${month} are: ${tokensRemaining / 1e6}\n`);
           console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+          preBalance = monthlyLimitsState.tokensUnlocked.toNumber();
           assert.isTrue(
             monthlyLimitsState.tokensUnlocked.toNumber() <= cumulativeLimit,
             "Should not exceed monthly limit"
@@ -486,3 +515,25 @@ function generateTestTimestamps(): number[] {
   return timestamps;
 }
 
+
+const calcluateSolAmount = (amount: number): number => {
+
+  const tokenPrice = 0.005;
+  const solUsd = 190;
+
+  const valueOfTokensInUSD = amount * tokenPrice;
+  const expectedSol = (valueOfTokensInUSD / solUsd);
+
+  return expectedSol;
+
+}
+
+const remainigTokens = (monthlyLimit: number, unlockedAmountLastMonth: number): number => {
+
+  if (unlockedAmountLastMonth === 0) {
+    return 0;
+  }
+
+  return monthlyLimit - unlockedAmountLastMonth;
+
+}

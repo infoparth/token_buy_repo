@@ -9,7 +9,7 @@ pub mod states;
 
 use contexts::*;
 
-declare_id!("EhQeU5ovyKfsT7mArWerJxLj9K2wmrC5PPKFDhTwuqqg");
+declare_id!("AZXoATbZhDjvRCDfWJxx1SGrmkYqvVbprjbFuF2NJ2DW");
 
 #[program]
 pub mod token_biu {
