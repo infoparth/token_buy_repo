@@ -169,13 +169,20 @@ impl<'info> BuyTokens<'info> {
         let timestamps = self.monthly_limits.timestamps;
         let limits = self.monthly_limits.limits;
 
-        if self.monthly_limits.last_checked_index  as usize == timestamps.len() - 1{
+        if self.monthly_limits.last_checked_index  as usize >= timestamps.len() - 1{
+            self.monthly_limits.tokens_available = self.program_token_account.amount;
+            self.monthly_limits.tokens_unlocked -= token_amount;
             return Ok(());
         } 
 
 
 
         if current_timestamp <= self.monthly_limits.timestamps[self.monthly_limits.last_checked_index  as usize + 1]{
+
+            if current_timestamp < self.monthly_limits.timestamps[DEFAULT as usize]{
+                return Err(ErrorCode::SaleNotStarted.into());
+            }
+
             if self.monthly_limits.tokens_available == 0 && self.monthly_limits.tokens_unlocked == 0{
                 self.monthly_limits.tokens_available = limits[self.monthly_limits.last_checked_index as usize];
             }
@@ -189,6 +196,7 @@ impl<'info> BuyTokens<'info> {
             token_amount <= self.monthly_limits.tokens_available,
             ErrorCode::MonthlyLimitExceeded
         );
+
             Ok(())
         }
 
@@ -209,10 +217,7 @@ impl<'info> BuyTokens<'info> {
         );
             Ok(())
         }
-
    }
-
-
 
     /// Transfer SOL from buyer to sale authority
     fn transfer_sol(&self, sol_amount: u64) -> Result<()> {

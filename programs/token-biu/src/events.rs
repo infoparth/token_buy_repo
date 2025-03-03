@@ -49,3 +49,8 @@ pub struct VestingDisabled {
     pub vesting: bool,
 }
 
+#[event]
+pub struct AdminWithdrawnTokens {
+    pub tokens_withdrawn: u64,
+}
+

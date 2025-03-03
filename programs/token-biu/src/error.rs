@@ -33,15 +33,19 @@ pub enum ErrorCode {
     #[msg("Math-Overflow error")]
     MathOverflow, 
 
-	#[msg("Purchase Limit Exceeded")]
-	PurchaseLimitExceeded, 
+    #[msg("Purchase Limit Exceeded")]
+	  PurchaseLimitExceeded, 
 
-	#[msg("Monthly Limit Exceeded")]
-	MonthlyLimitExceeded, 
+	  #[msg("Monthly Limit Exceeded")]
+	  MonthlyLimitExceeded, 
 
-	#[msg("Invalid Calculation Error")]
-  InvalidCalculation,
+	  #[msg("Invalid Calculation Error")]
+    InvalidCalculation,
 
+	  #[msg("Sale Not Started Yet")]
+    SaleNotStarted,
 
+	  #[msg("The Withdraw Limit has exceeded")]
+    WithdrawLimitExceeded,
 }
 

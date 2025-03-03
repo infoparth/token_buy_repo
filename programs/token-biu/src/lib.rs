@@ -9,7 +9,7 @@ pub mod states;
 
 use contexts::*;
 
-declare_id!("AZXoATbZhDjvRCDfWJxx1SGrmkYqvVbprjbFuF2NJ2DW");
+declare_id!("7CcUfuZQEMP5xL5AdznuhzvQyBd665Y41GS4eRRaNVdQ");
 
 #[program]
 pub mod token_biu {
@@ -58,5 +58,9 @@ pub mod token_biu {
 
     pub fn disable_vesting(ctx: Context<VestingControl>) -> Result<()> {
         ctx.accounts.disable_vesting()
+    }
+
+    pub fn withdraw_tokens(ctx: Context<WithdrawTokens>, token_amount: u64) -> Result<()> {
+        ctx.accounts.withdraw_remaining_tokens(token_amount)
     }
 }

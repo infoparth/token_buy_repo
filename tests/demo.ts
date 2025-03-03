@@ -47,11 +47,11 @@ describe("token_biu", () => {
   let programSaleAuthority: anchor.web3.PublicKey;
   let programTokenAccount: anchor.web3.PublicKey;
   let buyerTokenAccount;
+  let adminTokenAccount;
 
   const currentTimestamp = new anchor.BN(Math.floor(Date.now() / 1000));
 
-  // Monthly values for testing - in tokens with 6 decimals (e.g., 10000 * 1000000 = 10,000,000,000)
-  const monthlyValues = [100, 200, 50, 700, 280, 120, 180, 500, 300, 231, 900, 560, 1000, 1000];
+  const monthlyValues = [100, 200, 50, 700, 280, 220, 180, 500, 300, 231, 900, 560, 1000, 1000];
 
   const timestamps = generateTestTimestamps();
 
@@ -72,7 +72,7 @@ describe("token_biu", () => {
       // await Promise.all([
       //   provider.connection.requestAirdrop(
       //     wallet.publicKey,
-      //     5 * LAMPORTS_PER_SOL
+      //     50 * LAMPORTS_PER_SOL
       //   ),
       //   provider.connection.requestAirdrop(
       //     buyer.publicKey,
@@ -197,9 +197,24 @@ describe("token_biu", () => {
         mint
       );
 
+
+      console.log("\n--- Creating admin token account ---");
+      adminTokenAccount = await getAssociatedTokenAddress(
+        mint,
+        wallet.publicKey
+      );
+
+      // Create the token account if it doesn't exist
+      const admminAtaInstruction = createAssociatedTokenAccountInstruction(
+        wallet.publicKey,
+        adminTokenAccount,
+        wallet.publicKey,
+        mint
+      );
+
       try {
-        const transaction = new anchor.web3.Transaction().add(ataInstruction);
-        await provider.sendAndConfirm(transaction, [buyer]);
+        const transaction = new anchor.web3.Transaction().add(ataInstruction).add(admminAtaInstruction);
+        await provider.sendAndConfirm(transaction, [buyer, wallet]);
         console.log("Buyer token account created:", buyerTokenAccount.toBase58());
       } catch (error) {
         // Account might already exist, which is fine
@@ -237,7 +252,7 @@ describe("token_biu", () => {
   });
 
   const [monthlyLimitsAccount, monthlyLimitsBump] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("monthly_limits")],
+    [Buffer.from("monthly_limits_b")],
     program.programId
   );
 
@@ -262,6 +277,8 @@ describe("token_biu", () => {
         assert.deepEqual(event.limits, monthlyLimits);
       }
     );
+
+    console.log("Listener added")
 
     try {
       const tx = await program.methods
@@ -303,35 +320,41 @@ describe("token_biu", () => {
 
     let preBalance = 0;
 
-    let rem = 0;
+    let rem = 20;
 
-    for (let month = 0; month < 14; month++) {
+    for (let month = 0; month < 16; month++) {
 
-      if (month % 2 == 0) {
-        rem = 20;
-      }
-      else {
-        rem = -20
-      }
-
-      let expectedSol = calcluateSolAmount(monthlyValues[month] - rem)
-      // let solForPurchase = 0.02;
-      //
-      // if (month === 1) {
-      //   solForPurchase = 0.03;
+      // if (month % 2 == 0) {
+      //   rem = 20;
       // }
-      // let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
-      let monthlyTimestamp = new anchor.BN(month * 2629743); // ~1 month in seconds
+      // else {
+      //   rem = -20
+      // }
+
+
+      let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
+
+      // Condition to check sale not started condition
+
+      // if (month === 0) {
+      //   monthlyTimestamp = currentTimestamp.sub(new anchor.BN(2629743))
+      // }
+
+      let expectedSol = 0.02;
+
+      if (month < 14) {
+
+        expectedSol = calcluateSolAmount(monthlyValues[month] - rem)
+      }
 
       if (month === 12) {
         // solForPurchase = 0.02;
       }
       if (month === 13) {
         // solForPurchase = 0.02;
-        monthlyTimestamp = new anchor.BN((9 + month) * 2629743);
+        monthlyTimestamp = currentTimestamp.add(new anchor.BN((10 + month) * 2629743));
       }
 
-      console.log(`\n Testing Month according to timestamp ---\n`);
 
       let date = new Date(monthlyTimestamp.toNumber() * 1000); // Convert to milliseconds
 
@@ -339,15 +362,71 @@ describe("token_biu", () => {
       let year = date.getUTCFullYear();
       let monthName = date.toLocaleString('default', { month: 'long' });
 
-      console.log(`The timestamp corresponds to: ${monthName} ${year}`);
-
-
       console.log(`\n--- Testing Month ${month} ---\n`);
+
+      console.log(`The timestamp corresponds to: ${monthName} ${year}`);
 
       try {
 
+
+        // let monthlyLimitsStatePrior = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+        //
+        // console.log("The Month limits prior are: ",)
+
         // Make a purchase below the limit
-        console.log(`\nMaking purchase below limit for month ${month} \n`);
+        console.log(`\nMaking purchase for month ${month} \n`);
+
+        if (month === 6) {
+          console.log("\n==========================++++++=====================================\n")
+          console.log("Starting token withdraw for admin")
+          try {
+            console.log("Admin withdrawal time at month 7");
+
+            const remTokens = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+            let rem = remTokens.tokensAvailable;
+
+            console.log("Withdrawing ", rem.toNumber() / 1e6, " tokens");
+
+            const tx = await program.methods
+              .withdrawTokens(rem)
+              .accounts({
+                saleConfig: saleConfig.publicKey,
+                authority: wallet.publicKey,
+                monthlyLimits: monthlyLimitsAccount,
+                programTokenAccount: programTokenAccount,
+                programSaleAuthority: programSaleAuthority,
+                mint: mint,
+                adminTokenAccount: adminTokenAccount,
+                systemProgram: anchor.web3.SystemProgram.programId,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
+              })
+              .signers([wallet])
+              .rpc();
+
+
+
+
+
+            console.log("Tx successfull: ", tx)
+
+            const _remTokens = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+
+            const accountInfo = await provider.connection.getTokenAccountBalance(adminTokenAccount);
+            console.log("")
+            console.log(`Admin Token Balance: ${accountInfo.value.amount}`);
+
+            console.log(_remTokens.tokensWithdrawn.toNumber() / 1e6, " Tokens Withdrawal successfull")
+            console.log("\n==========================++++++=====================================\n")
+
+            continue;
+
+          } catch (error) {
+            console.log("Failed to withdraw tokens for admin: ", error)
+            continue;
+
+          }
+        }
 
         await program.methods
           .buyTokens(new anchor.BN(expectedSol * LAMPORTS_PER_SOL), monthlyTimestamp)
@@ -378,69 +457,41 @@ describe("token_biu", () => {
         // let year = date.getUTCFullYear();
         // let monthName = date.toLocaleString('default', { month: 'long' });
         // console.log("The current month according to contract is: ", monthName, year)
+
         // Verify monthly limits state
         // console.log("Total tokens unlocked uptill this point are: ", monthlyLimitsState.tokensUnlocked.toNumber() / 1e6);
         // console.log("\nTotal tokens available uptill this point are: ", monthlyLimitsState.tokensAvailable.toNumber() / 1e6);
-        console.log(`\nTokens bought in ${month} are: `, (monthlyLimitsState.tokensUnlocked.toNumber() - preBalance) / 1e6, "\n");
-        console.log(`\nMonth limit: ${monthlyLimitsState.limits[month].toNumber() / 1e6}\n`);
-
-
-        // assert.isTrue(
-        //   monthlyLimitsState.tokensUnlocked.gt(new anchor.BN(0)),
-        //   "Tokens bought this month should be greater than 0"
-        // );
-        //
-        cumulativeLimit += monthlyLimitsState.limits[month].toNumber();
-        //
-        // assert.isTrue(
-        //   monthlyLimitsState.tokensUnlocked.toNumber() <= cumulativeLimit,
-        //   "Tokens bought should be less than monthly limit"
-        // );
-
-        // Test limit enforcement with additional purchase
-        try {
-          // console.log("\nTesting limit enforcement with additional purchase\n");
-          // await program.methods
-          //   .buyTokens(smallPurchase, monthlyTimestamp)
-          //   .accounts({
-          //     buyer: buyer.publicKey,
-          //     saleAuthority: recipient.publicKey,
-          //     programSaleAuthority: programSaleAuthority,
-          //     saleConfig: saleConfig.publicKey,
-          //     authority: wallet.publicKey,
-          //     mint: mint,
-          //     programTokenAccount: programTokenAccount,
-          //     buyerTokenAccount: buyerTokenAccount,
-          //     walletPurchase: walletPurchaseAccount,
-          //     monthlyLimits: monthlyLimitsAccount,
-          //     systemProgram: anchor.web3.SystemProgram.programId,
-          //     tokenProgram: TOKEN_PROGRAM_ID,
-          //     associatedTokenProgram: ASSOCIATED_PROGRAM_ID,
-          //   })
-          //   .signers([buyer])
-          //   .rpc();
-
-          // Check if we're still under the limit
-          monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
-          console.log(`Updated tokens bought: ${monthlyLimitsState.tokensUnlocked.toNumber() / 1e6}`);
-
-          let tokensRemaining = ((month + 1) * monthlyLimitsState.limits[month].toNumber()) - monthlyLimitsState.tokensUnlocked.toNumber()
-          console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-
-          console.log(`\nTokens Remaining for month ${month} are: ${tokensRemaining / 1e6}\n`);
-          console.log("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-          preBalance = monthlyLimitsState.tokensUnlocked.toNumber();
-          assert.isTrue(
-            monthlyLimitsState.tokensUnlocked.toNumber() <= cumulativeLimit,
-            "Should not exceed monthly limit"
-          );
-        } catch (error) {
-          if (error.message.includes("MonthlyLimitExceeded")) {
-            console.log("Correctly rejected purchase that would exceed monthly limit");
-          } else {
-            throw error;
-          }
+        if (month < 14) {
+          console.log(`\nMonth limit: ${monthlyLimitsState.limits[month].toNumber() / 1e6}\n`);
+          cumulativeLimit += monthlyLimitsState.limits[month].toNumber();
         }
+        console.log(`\nTokens bought in ${month} are: `, (monthlyLimitsState.tokensUnlocked.toNumber() - preBalance) / 1e6, "\n");
+        console.log(`\nTotal tokens available are:  ${monthlyLimitsState.tokensAvailable.toNumber() / 1e6}\n`);
+        console.log(`\nTotal Tokens Withdrawan are:  ${monthlyLimitsState.tokensWithdrawn.toNumber() / 1e6}\n`);
+
+
+        assert.isTrue(
+          monthlyLimitsState.tokensUnlocked.gt(new anchor.BN(0)),
+          "Tokens bought this month should be greater than 0"
+        );
+
+
+        assert.isTrue(
+          monthlyLimitsState.tokensUnlocked.toNumber() <= cumulativeLimit,
+          "Tokens bought should be less than monthly limit"
+        );
+
+        monthlyLimitsState = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
+
+        console.log(`Total tokens bought: ${monthlyLimitsState.tokensUnlocked.toNumber() / 1e6}`);
+
+        preBalance = monthlyLimitsState.tokensUnlocked.toNumber();
+
+        assert.isTrue(
+          monthlyLimitsState.tokensUnlocked.toNumber() <= cumulativeLimit,
+          "Should not exceed monthly limit"
+        );
+
 
       } catch (error) {
         console.error(`Error testing month ${month}:`, error);
@@ -523,6 +574,8 @@ const calcluateSolAmount = (amount: number): number => {
 
   const valueOfTokensInUSD = amount * tokenPrice;
   const expectedSol = (valueOfTokensInUSD / solUsd);
+
+
 
   return expectedSol;
 

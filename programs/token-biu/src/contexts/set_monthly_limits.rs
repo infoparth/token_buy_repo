@@ -11,7 +11,7 @@ pub struct SetMonthlyLimits<'info> {
         init_if_needed,
         payer = authority,
         space = MONTHLY_LIMITS_SIZE,
-        seeds = [b"monthly_limits"],
+        seeds = [b"monthly_limits_a"],
         bump,
     )]
     pub monthly_limits: Box<Account<'info, MonthlyLimits>>,
@@ -28,10 +28,11 @@ impl<'info> SetMonthlyLimits<'info> {
 
         self.monthly_limits.limits = limits;
         self.monthly_limits.timestamps = timestamps;
-        self.monthly_limits.tokens_unlocked = DEFAULT;
         self.monthly_limits.is_vesting_enabled = true;
+        self.monthly_limits.tokens_unlocked = DEFAULT;
         self.monthly_limits.tokens_available = DEFAULT;
         self.monthly_limits.last_checked_index = DEFAULT as u8;
+        self.monthly_limits.tokens_withdrawn = DEFAULT;
 
         emit!(MonthlyLimitsSet {
             limits: self.monthly_limits.limits,

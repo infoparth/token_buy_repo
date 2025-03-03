@@ -27,6 +27,7 @@ pub struct MonthlyLimits {
     pub limits: [u64; 14],
     pub tokens_unlocked: u64,       // Tokens unlocked so far
     pub tokens_available: u64,
+    pub tokens_withdrawn: u64,
     pub last_checked_index: u8,
     pub is_vesting_enabled: bool,
 }
