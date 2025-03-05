@@ -51,7 +51,9 @@ pub struct WithdrawTokens<'info> {
 impl<'info> WithdrawTokens<'info> {
     pub fn withdraw_remaining_tokens(&mut self, token_amount: u64) -> Result<()>{
 
-        require!(token_amount <= self.monthly_limits.tokens_available, ErrorCode::WithdrawLimitExceeded);
+        let current_timestamp = Clock::get()?.unix_timestamp;
+
+        self.check_monthly_limits(token_amount, current_timestamp)?;
 
         self.transfer_tokens_to_admin(token_amount)?;
 
@@ -98,4 +100,60 @@ impl<'info> WithdrawTokens<'info> {
 
         Ok(())
     }
+
+
+    /// Check monthly limits
+    fn check_monthly_limits(&mut self, token_amount: u64, current_timestamp: i64) -> Result<()> {
+
+        let timestamps = self.monthly_limits.timestamps;
+        let limits = self.monthly_limits.limits;
+
+        if self.monthly_limits.last_checked_index  as usize >= timestamps.len() - 1{
+            self.monthly_limits.tokens_available = self.program_token_account.amount;
+            return Ok(());
+        }
+
+
+
+        if current_timestamp <= self.monthly_limits.timestamps[self.monthly_limits.last_checked_index  as usize + 1]{
+
+            if current_timestamp < self.monthly_limits.timestamps[DEFAULT as usize]{
+                return Err(ErrorCode::SaleNotStarted.into());
+            }
+
+            if self.monthly_limits.tokens_available == 0 && self.monthly_limits.tokens_unlocked == 0{
+                self.monthly_limits.tokens_available = limits[self.monthly_limits.last_checked_index as usize];
+            }
+
+            if self.monthly_limits.last_checked_index == (MONTHS_IN_A_YEAR - 1){
+                self.monthly_limits.tokens_available += limits[MONTHS_IN_A_YEAR as usize];
+                self.monthly_limits.last_checked_index += 1;
+            }
+
+        require!(
+            token_amount <= self.monthly_limits.tokens_available,
+            ErrorCode::MonthlyLimitExceeded
+        );
+
+            Ok(())
+        }
+
+        else{
+            let mut i = self.monthly_limits.last_checked_index as usize + 1;
+            let mut temp_var  = self.monthly_limits.last_checked_index as usize;
+
+            while i < timestamps.len() && current_timestamp >= timestamps[i]{
+                temp_var = i;
+                self.monthly_limits.tokens_available += limits[i];
+                i += 1;
+            }
+            self.monthly_limits.last_checked_index = temp_var as u8;
+
+        require!(
+            token_amount <= self.monthly_limits.tokens_available,
+            ErrorCode::MonthlyLimitExceeded
+        );
+            Ok(())
+        }
+   }
 }

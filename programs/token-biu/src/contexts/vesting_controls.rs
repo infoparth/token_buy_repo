@@ -1,6 +1,5 @@
 
 use anchor_lang::prelude::*;
-use anchor_spl::*;
 use crate::{events::*, states::* };
 
 #[derive(Accounts)]

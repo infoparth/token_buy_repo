@@ -171,7 +171,6 @@ impl<'info> BuyTokens<'info> {
 
         if self.monthly_limits.last_checked_index  as usize >= timestamps.len() - 1{
             self.monthly_limits.tokens_available = self.program_token_account.amount;
-            self.monthly_limits.tokens_unlocked -= token_amount;
             return Ok(());
         } 
 
