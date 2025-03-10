@@ -125,10 +125,6 @@ impl<'info> WithdrawTokens<'info> {
                 self.monthly_limits.tokens_available = limits[self.monthly_limits.last_checked_index as usize];
             }
 
-            if self.monthly_limits.last_checked_index == (MONTHS_IN_A_YEAR - 1){
-                self.monthly_limits.tokens_available += limits[MONTHS_IN_A_YEAR as usize];
-                self.monthly_limits.last_checked_index += 1;
-            }
 
         require!(
             token_amount <= self.monthly_limits.tokens_available,

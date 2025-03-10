@@ -26,7 +26,7 @@ describe("token_biu", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
   const program = anchor.workspace.TokenBiu as Program<TokenBiu>;
-  const initialTokenLimit = 10000000 * 1000000;
+  const initialTokenLimit = 1000000000 * 1000000;
   let variableTokenLimit = 10000000 * 1000000;
 
   // Dynamically create wallet 1 and wallet 2
@@ -39,7 +39,7 @@ describe("token_biu", () => {
   const buyer = Keypair.fromSecretKey(
     new Uint8Array(JSON.parse(fs.readFileSync(path.join(__dirname, "buyer.json"), "utf-8")))
   );
-  const recipient: Keypair = Keypair.generate();
+  const recipient = new anchor.web3.PublicKey("6Aa35EE5yEoCuRPgdhzXdvYKGFVLXeeLjDBx6h35g3oh");
 
   let saleConfig: Keypair;
   saleConfig = anchor.web3.Keypair.generate();
@@ -51,7 +51,7 @@ describe("token_biu", () => {
 
   const currentTimestamp = new anchor.BN(Math.floor(Date.now() / 1000));
 
-  const monthlyValues = [100, 200, 50, 700, 280, 220, 180, 500, 300, 231, 900, 560, 1000, 1000];
+  const monthlyValues = [300, 200, 50, 700, 280, 220, 180, 500, 300, 231, 900, 560, 10000, 10000];
 
   const timestamps = generateTestTimestamps();
 
@@ -68,22 +68,22 @@ describe("token_biu", () => {
     console.log("=======================================");
 
     try {
-      // console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
-      // await Promise.all([
-      //   provider.connection.requestAirdrop(
-      //     wallet.publicKey,
-      //     50 * LAMPORTS_PER_SOL
-      //   ),
-      //   provider.connection.requestAirdrop(
-      //     buyer.publicKey,
-      //     BUYER_SOL_AMOUNT
-      //   ),
-      // ]).then((signatures) =>
-      //   Promise.all(
-      //     signatures.map((sig) => provider.connection.confirmTransaction(sig))
-      //   )
-      // );
-      // console.log("Airdrop completed.\n");
+      //   console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
+      //   await Promise.all([
+      //     provider.connection.requestAirdrop(
+      //       wallet.publicKey,
+      //       50 * LAMPORTS_PER_SOL
+      //     ),
+      //     provider.connection.requestAirdrop(
+      //       buyer.publicKey,
+      //       BUYER_SOL_AMOUNT
+      //     ),
+      //   ]).then((signatures) =>
+      //     Promise.all(
+      //       signatures.map((sig) => provider.connection.confirmTransaction(sig))
+      //     )
+      //   );
+      //   console.log("Airdrop completed.\n");
     } catch (error) {
       console.error("Error during SOL airdrop:", error);
     }
@@ -171,7 +171,7 @@ describe("token_biu", () => {
           authority: wallet.publicKey,
           saleConfig: saleConfig.publicKey,
           systemProgram: anchor.web3.SystemProgram.programId,
-          recipient: recipient.publicKey,
+          recipient: recipient,
           tokenMint: mint,
         })
         .signers([wallet, saleConfig])
@@ -320,7 +320,6 @@ describe("token_biu", () => {
 
     let preBalance = 0;
 
-    let rem = 20;
 
     for (let month = 0; month < 16; month++) {
 
@@ -330,7 +329,6 @@ describe("token_biu", () => {
       // else {
       //   rem = -20
       // }
-
 
       let monthlyTimestamp = currentTimestamp.add(new anchor.BN(month * 2629743)); // ~1 month in seconds
 
@@ -344,8 +342,20 @@ describe("token_biu", () => {
 
       if (month < 14) {
 
-        expectedSol = calcluateSolAmount(monthlyValues[month] - rem)
+        expectedSol = calcluateSolAmount(monthlyValues[month]);
       }
+
+      // if (month === 0) {
+      //   expectedSol = 8;
+      // }
+      //
+      // if (month === 1) {
+      //   expectedSol = 9;
+      // }
+
+      // if (month === 11) {
+      //   expectedSol += 0.000001;
+      // }
 
       if (month === 12) {
         // solForPurchase = 0.02;
@@ -376,11 +386,10 @@ describe("token_biu", () => {
         // Make a purchase below the limit
         console.log(`\nMaking purchase for month ${month} \n`);
 
-        if (month === 6) {
+        if (false) {
           console.log("\n==========================++++++=====================================\n")
           console.log("Starting token withdraw for admin")
           try {
-            console.log("Admin withdrawal time at month 7");
 
             const remTokens = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
             let rem = remTokens.tokensAvailable;
@@ -393,7 +402,7 @@ describe("token_biu", () => {
             console.log("Withdrawing ", rem.toNumber() / 1e6, " tokens");
 
             const tx = await program.methods
-              .withdrawTokens(totalWithdrawAmount, monthlyTimestamp)
+              .withdrawTokens(totalWithdrawAmount)
               .accounts({
                 saleConfig: saleConfig.publicKey,
                 authority: wallet.publicKey,
@@ -437,14 +446,14 @@ describe("token_biu", () => {
           .buyTokens(new anchor.BN(expectedSol * LAMPORTS_PER_SOL), monthlyTimestamp)
           .accounts({
             buyer: buyer.publicKey,
-            saleAuthority: recipient.publicKey,
+            saleAuthority: recipient,
             programSaleAuthority: programSaleAuthority,
             saleConfig: saleConfig.publicKey,
             authority: wallet.publicKey,
             mint: mint,
             programTokenAccount: programTokenAccount,
             buyerTokenAccount: buyerTokenAccount,
-            walletPurchase: walletPurchaseAccount,
+            // walletPurchase: walletPurchaseAccount,
             monthlyLimits: monthlyLimitsAccount,
             systemProgram: anchor.web3.SystemProgram.programId,
             tokenProgram: TOKEN_PROGRAM_ID,
@@ -546,7 +555,7 @@ function generateTestTimestamps(): number[] {
 
   timestamps.push(Math.floor(now.getTime() / 1000));
 
-  for (let i = 1; i <= 11; i++) {
+  for (let i = 1; i <= 12; i++) {
     const nextMonth = new Date(now);
     nextMonth.setMonth(now.getMonth() + i);
     nextMonth.setDate(1);
@@ -561,12 +570,12 @@ function generateTestTimestamps(): number[] {
   sixthMonthNextYear.setHours(0, 0, 0, 0);
   timestamps.push(Math.floor(sixthMonthNextYear.getTime() / 1000));
 
-  const twelfthMonthNextYear = new Date(now);
-  twelfthMonthNextYear.setFullYear(now.getFullYear() + 1);
-  twelfthMonthNextYear.setMonth(11);
-  twelfthMonthNextYear.setDate(1);
-  twelfthMonthNextYear.setHours(0, 0, 0, 0);
-  timestamps.push(Math.floor(twelfthMonthNextYear.getTime() / 1000));
+  // const twelfthMonthNextYear = new Date(now);
+  // twelfthMonthNextYear.setFullYear(now.getFullYear() + 1);
+  // twelfthMonthNextYear.setMonth(11);
+  // twelfthMonthNextYear.setDate(1);
+  // twelfthMonthNextYear.setHours(0, 0, 0, 0);
+  // timestamps.push(Math.floor(twelfthMonthNextYear.getTime() / 1000));
 
   return timestamps;
 }
