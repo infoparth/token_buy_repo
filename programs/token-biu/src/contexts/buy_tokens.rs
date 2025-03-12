@@ -74,9 +74,9 @@ pub struct BuyTokens<'info> {
 }
 
 impl<'info> BuyTokens<'info> {
-    pub fn buy(&mut self, sol_amount: u64, current_timestamp: i64) -> Result<()> {
+    pub fn buy(&mut self, sol_amount: u64) -> Result<()> {
 
-        // let current_timestamp = Clock::get()?.unix_timestamp;
+        let current_timestamp = Clock::get()?.unix_timestamp;
 
         self.check_sale_paused()?;
         self.initialize_wallet_purchase_if_needed()?;

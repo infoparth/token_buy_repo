@@ -24,8 +24,8 @@ pub mod token_biu {
         ctx.accounts.initialize(token_price_usd, mint_decimals, purchase_limit)
     }
 
-    pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64, current_timestamp: i64) -> Result<()> {
-        ctx.accounts.buy(sol_amount, current_timestamp)
+    pub fn buy_tokens(ctx: Context<BuyTokens>, sol_amount: u64) -> Result<()> {
+        ctx.accounts.buy(sol_amount)
     }
 
     pub fn change_reciepent_account(ctx: Context<AdminControl>, new_receipent: Pubkey) -> Result<()> {
