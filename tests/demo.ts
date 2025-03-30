@@ -55,6 +55,9 @@ describe("token_biu", () => {
 
   const timestamps = generateTestTimestamps();
 
+  consoleInitialTimestamps(timestamps);
+
+
   // Calculate total tokens needed for all months
   const totalMonthlyLimits = monthlyValues.reduce((sum, val) => sum + val, 0) * 1000000;
 
@@ -68,22 +71,22 @@ describe("token_biu", () => {
     console.log("=======================================");
 
     try {
-      //   console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
-      //   await Promise.all([
-      //     provider.connection.requestAirdrop(
-      //       wallet.publicKey,
-      //       50 * LAMPORTS_PER_SOL
-      //     ),
-      //     provider.connection.requestAirdrop(
-      //       buyer.publicKey,
-      //       BUYER_SOL_AMOUNT
-      //     ),
-      //   ]).then((signatures) =>
-      //     Promise.all(
-      //       signatures.map((sig) => provider.connection.confirmTransaction(sig))
-      //     )
-      //   );
-      //   console.log("Airdrop completed.\n");
+      console.log("\n--- Requesting SOL airdrop for wallet and buyer ---");
+      await Promise.all([
+        provider.connection.requestAirdrop(
+          wallet.publicKey,
+          50 * LAMPORTS_PER_SOL
+        ),
+        provider.connection.requestAirdrop(
+          buyer.publicKey,
+          BUYER_SOL_AMOUNT
+        ),
+      ]).then((signatures) =>
+        Promise.all(
+          signatures.map((sig) => provider.connection.confirmTransaction(sig))
+        )
+      );
+      console.log("Airdrop completed.\n");
     } catch (error) {
       console.error("Error during SOL airdrop:", error);
     }
@@ -228,7 +231,7 @@ describe("token_biu", () => {
     try {
       console.log("\n--- Minting tokens to program token account ---");
       // Add extra tokens for safety
-      const MINT_AMOUNT = totalMonthlyLimits * 2;
+      const MINT_AMOUNT = totalMonthlyLimits * 500;
 
       console.log(`Minting ${MINT_AMOUNT} tokens to program account...`);
       await mintTo(
@@ -320,6 +323,7 @@ describe("token_biu", () => {
 
     let preBalance = 0;
 
+    let test;
 
     for (let month = 0; month < 16; month++) {
 
@@ -360,27 +364,34 @@ describe("token_biu", () => {
       if (month === 12) {
         // solForPurchase = 0.02;
       }
+
       if (month === 13) {
-        // solForPurchase = 0.02;
-        monthlyTimestamp = currentTimestamp.add(new anchor.BN((10 + month) * 2629743));
+        expectedSol = 0.001;
+        monthlyTimestamp = currentTimestamp.add(new anchor.BN((4 + month) * 2629743));
+        test = monthlyTimestamp;
       }
 
+      if (month === 14) {
+        expectedSol = 5;
+        monthlyTimestamp = test;
+        console.log("test Initiatated")
+      }
 
       let date = new Date(monthlyTimestamp.toNumber() * 1000); // Convert to milliseconds
 
       // Extract month and year
+      let exDate = date.getDate();
       let year = date.getUTCFullYear();
       let monthName = date.toLocaleString('default', { month: 'long' });
 
       console.log(`\n--- Testing Month ${month} ---\n`);
 
-      console.log(`The timestamp corresponds to: ${monthName} ${year}`);
+      console.log(`The timestamp corresponds to: ${exDate} ${monthName} ${year}`);
 
       try {
 
 
         // let monthlyLimitsStatePrior = await program.account.monthlyLimits.fetch(monthlyLimitsAccount);
-        //
         // console.log("The Month limits prior are: ",)
 
         // Make a purchase below the limit
@@ -417,9 +428,6 @@ describe("token_biu", () => {
               })
               .signers([wallet])
               .rpc();
-
-
-
 
 
             console.log("Tx successfull: ", tx)
@@ -480,6 +488,7 @@ describe("token_biu", () => {
           cumulativeLimit += monthlyLimitsState.limits[month].toNumber();
         }
         console.log(`\nTokens bought in ${month} are: `, (monthlyLimitsState.tokensUnlocked.toNumber() - preBalance) / 1e6, "\n");
+        console.log("CUrrently last checked index is: ", monthlyLimitsState.lastCheckedIndex);
         console.log(`\nTotal tokens available are:  ${monthlyLimitsState.tokensAvailable.toNumber() / 1e6}\n`);
         console.log(`\nTotal Tokens Withdrawan are:  ${monthlyLimitsState.tokensWithdrawn.toNumber() / 1e6}\n`);
 
@@ -549,6 +558,25 @@ describe("token_biu", () => {
   }
 });
 
+
+function consoleInitialTimestamps(timestamps: number[]): void {
+
+  const len = timestamps.length;
+
+  timestamps.map((value) => {
+
+    let date = new Date(value * 1000); // Convert to milliseconds
+
+    // Extract month and year
+    let exDate = date.getDate();
+    let year = date.getUTCFullYear();
+    let monthName = date.toLocaleString('default', { month: 'long' });
+
+    console.log(`The timestamp array corresponds to: ${exDate} ${monthName} ${year}`);
+  })
+
+}
+
 function generateTestTimestamps(): number[] {
   const timestamps: number[] = [];
   const now = new Date();
@@ -565,7 +593,7 @@ function generateTestTimestamps(): number[] {
 
   const sixthMonthNextYear = new Date(now);
   sixthMonthNextYear.setFullYear(now.getFullYear() + 1);
-  sixthMonthNextYear.setMonth(5);
+  sixthMonthNextYear.setMonth(7);
   sixthMonthNextYear.setDate(1);
   sixthMonthNextYear.setHours(0, 0, 0, 0);
   timestamps.push(Math.floor(sixthMonthNextYear.getTime() / 1000));

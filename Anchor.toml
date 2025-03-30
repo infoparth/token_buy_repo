@@ -8,7 +8,7 @@ skip-lint = false
 token_biu = "7CcUfuZQEMP5xL5AdznuhzvQyBd665Y41GS4eRRaNVdQ"
 
 [programs.devnet]
-token_biu = "7CcUfuZQEMP5xL5AdznuhzvQyBd665Y41GS4eRRaNVdQ"
+token_biu = "5FAMzVkMrJVTCzWpsRynmsNcRHr3fQSxuDb9zvgVAD8V"
 
 [programs.mainnet]
 token_biu = "EhQeU5ovyKfsT7mArWerJxLj9K2wmrC5PPKFDhTwuqqg"
@@ -17,7 +17,7 @@ token_biu = "EhQeU5ovyKfsT7mArWerJxLj9K2wmrC5PPKFDhTwuqqg"
 url = "https://api.mainnet-beta.solana.com"
 
 [provider]
-cluster = "devnet"
+cluster = "Devnet"
 wallet = "new-keypair.json"
 
 [test]
