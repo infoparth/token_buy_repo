@@ -65,7 +65,7 @@ If any of these tools are missing, visit their official documentation for instal
    Ensure your Solana wallet is configured and funded. If you’re using `devnet`, you can airdrop SOL using:
 
    ```bash
-   solana airdrop 2
+   solana airdrop 5
    ```
 
 ---
@@ -76,60 +76,85 @@ If any of these tools are missing, visit their official documentation for instal
    Compile your Anchor program by running:
 
    ```bash
-   anchor build
+   solana-verify build
    ```
 
-2. **Retrieve the Program Address**:
-   After building, fetch the program’s address from the generated keypair:
+2. **Check the compiled Program Hash**:
+   Check the Hash of your built binary:
 
    ```bash
-   solana address -k target/deploy/token_biu-keypair.json
+   solana-verify get-executable-hash target/deploy/token_biu.so
+   ```
+
+3. **Retrieve the Program Address**:
+   After building, create the program’s address from a new keypair($PROGRAM_ID):
+
+   ```bash
+   solana-keygen new --outfile program-keypair.json
    ```
 
    The output is your **Program ID**. Save this for the next steps.
 
-3. **Update the Program ID in the Code**:
-
-   - Open your program’s main Rust file (e.g., `lib.rs`).
-   - Replace the placeholder in the `declare_id!()` macro with your Program ID:
-
-     ```rust
-     declare_id!("YourProgramAddressHere");
-     ```
-
-   - Update the `Anchor.toml` file with the same Program ID:
-
-     ```toml
-     token_biu = "YourProgramAddressHere"
-     ```
-
-4. **Rebuild the Program**:
-   Recompile the program with the updated Program ID:
-
-   ```bash
-   anchor build
-   ```
-
-5. **Deploy the Program**:
+4. **Deploy the Program**:
    Deploy your program to the Solana blockchain:
 
+   For Devnet:
+
    ```bash
-   anchor deploy
+   solana program deploy -u https://api.devnet.solana.com target/deploy/token_biu.so --program-id program-keypair.json --with-compute-unit-price 10000 --max-sign-attempts 1000 --use-rpc
    ```
+
+   For Mainnet: Use a RPC from Helius($HELIUS_RPC) so that you don't get rate limting.
+
+   ```bash
+   solana program deploy -u $HELIUS_RPC target/deploy/token_biu.so --program-id program-keypair.json --with-compute-unit-price 10000 --max-sign-attempts 1000 --use-rpc
+   ```
+
 
    **Note**: If you encounter an "insufficient funds" error, ensure your wallet is funded. For `devnet`, use:
 
    ```bash
-   solana airdrop 2
+   solana airdrop 5
    ```
 
-6. **Verify Deployment**:
-   Confirm your program is live on the blockchain:
+5. **Verify the on-chain hash**
+   Get the hash of the deployed program on-chain, and compare it with the hash obtained in Step 2:
+
+   For Devnet: 
 
    ```bash
-   solana program show <program-id>
+   solana-verify get-program-hash -ud $NETWORK_URL $PROGRAM_ID
    ```
 
+   For Mainnet: 
+
+   ```bash
+   solana-verify get-program-hash -um $NETWORK_URL $PROGRAM_ID
+   ```
+
+   If the hash matches, then proceed further
+
+6. **Verify the deployment locally against the repository**:
+   To verify the program against the public repository, use:
+
+   For Devnet:
+
+   ```bash
+   solana-verify verify-from-repo -ud --program-id $PROGRAM_ID https://github.com/infoparth/token_buy_repo --commit-hash $COMMIT_HASH --library-name token_biu
+   ```
+
+   For Mainnet:
+
+   ```bash
+   solana-verify verify-from-repo -um --program-id $PROGRAM_ID https://github.com/infoparth/token_buy_repo --commit-hash $COMMIT_HASH --library-name token_biu 
+   ```
+
+7. **Verify the deployment against a public API**:
+   Works only on the mainnet.
+
+   ```bash
+   solana-verify verify-from-repo --remote -um --program-id $PROGRAM_ID https://github.com/infoparth/token_buy_repo
+   ```   
 ---
 
 ### 3. Configure the Client
