@@ -70,7 +70,7 @@ If any of these tools are missing, visit their official documentation for instal
 
 ---
 
-### 2. Deploy the Program
+### 2. Deploy the Program and Verify
 
 1. **Build the Program**:
    Compile your Anchor program by running:
