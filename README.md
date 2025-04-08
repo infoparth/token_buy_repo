@@ -190,6 +190,7 @@ run the command
 
    ```bash
    sudo chown -R $USER:$USER .
+   anchor build
    ```
 
 1. **Update the IDL**:
