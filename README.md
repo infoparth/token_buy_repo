@@ -72,28 +72,43 @@ If any of these tools are missing, visit their official documentation for instal
 
 ### 2. Deploy the Program and Verify
 
-1. **Build the Program**:
+1. **Retrieve the Program Address**:
+   First of all, create the program’s address from a new keypair($PROGRAM_ID):
+
+   ```bash
+   solana-keygen new --outfile program-keypair.json
+   ```
+
+   The output is your **Program ID**. Update the ProgramID in Anchor.toml,
+
+   ```toml
+   [programs.devnet]
+   token_biu = "Program ID"  -- For Devnet
+
+   [programs.mainnet]
+   token_biu = "Program ID"  -- For Mainnet
+   ```
+
+   and in lib.rs
+
+   ```rust
+   declare_id!("Program ID");
+   ```
+
+
+2. **Build the Program**:
    Compile your Anchor program by running:
 
    ```bash
    solana-verify build
    ```
 
-2. **Check the compiled Program Hash**:
+3. **Check the compiled Program Hash**:
    Check the Hash of your built binary:
 
    ```bash
    solana-verify get-executable-hash target/deploy/token_biu.so
    ```
-
-3. **Retrieve the Program Address**:
-   After building, create the program’s address from a new keypair($PROGRAM_ID):
-
-   ```bash
-   solana-keygen new --outfile program-keypair.json
-   ```
-
-   The output is your **Program ID**. Save this for the next steps.
 
 4. **Deploy the Program**:
    Deploy your program to the Solana blockchain:
@@ -158,6 +173,24 @@ If any of these tools are missing, visit their official documentation for instal
 ---
 
 ### 3. Configure the Client
+
+To get the program IDL, run the following command before verify step i.e Step 5 for Devnet, and on mainnet, after step 7
+
+   ```bash
+   anchor build
+   ```
+
+If faced with the error
+
+   ```error
+   Permission Denied
+   ```
+
+run the command 
+
+   ```bash
+   sudo chown -R $USER:$USER .
+   ```
 
 1. **Update the IDL**:
    Anchor automatically generates an IDL (Interface Definition Language) file during the build process. Locate it in the `target/idl/` directory.
