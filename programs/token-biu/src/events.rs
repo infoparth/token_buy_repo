@@ -54,3 +54,10 @@ pub struct AdminWithdrawnTokens {
     pub tokens_withdrawn: u64,
 }
 
+#[event]
+pub struct BulkAirdropCompleted {
+    pub recipient_count: u32,
+    pub total_amount: u64,
+    pub timestamp: i64,
+}
+

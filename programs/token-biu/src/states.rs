@@ -4,12 +4,14 @@ use anchor_lang::prelude::*;
 pub struct SaleConfig {
     pub authority: Pubkey,
     pub sale_authority: Pubkey,
+    pub airdrop_authority: Pubkey,
     pub recipient: Pubkey,
     pub token_mint: Pubkey,
     pub token_price_usd: f64,
     pub mint_decimals: u64,
     pub wallet_purchase_limit: u64,
     pub bump: u8,
+    pub airdrop_bump: u8,
     pub paused: bool,
 }
 

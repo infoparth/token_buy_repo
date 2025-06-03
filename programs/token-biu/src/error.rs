@@ -47,5 +47,36 @@ pub enum ErrorCode {
 
 	  #[msg("The Withdraw Limit has exceeded")]
     WithdrawLimitExceeded,
+
+     #[msg("Number of amounts does not match number of recipient accounts.")]
+    AmountRecipientMismatch,
+
+    #[msg("No recipients provided.")]
+    NoRecipients,
+
+    #[msg("Source token account mint does not match the provided token mint.")]
+    SourceMintMismatch,
+
+    #[msg("Recipient token account mint does not match the provided token mint.")]
+    RecipientMintMismatch,
+
+    #[msg("PDA is not the authority for the source token account.")]
+    InvalidAuthority,
+
+    #[msg("Cannot airdrop zero tokens.")]
+    ZeroAmount,
+
+    #[msg("Recipient account must be writable.")]
+    RecipientNotWritable,
+
+    #[msg("Recipient account must be owned by the SPL Token program.")]
+    RecipientNotTokenAccount,
+
+    #[msg("Source account cannot be the recipient account.")]
+    SourceIsRecipient,
+
+    #[msg("Not enough balance for airdrop.")]
+    InsufficientVaultBalance,
+
 }
 
